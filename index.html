@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Éditeur en Direct</title>
+    <style>
+        body {
+            display: flex;
+            height: 100vh;
+            margin: 0;
+        }
+        textarea, iframe {
+            flex: 1;
+            height: 100%;
+            border: none;
+        }
+        textarea {
+            padding: 10px;
+            font-size: 16px;
+            resize: none;
+        }
+    </style>
+</head>
+<body>
+    <textarea id="editor" placeholder="Write HTML here..."></textarea>
+    <iframe id="output" title="Aperçu"></iframe>
+    <script>
+        const editor = document.getElementById('editor');
+        const output = document.getElementById('output');
+        
+        function updateOutput() {
+            const code = editor.value;
+            output.contentWindow.document.open();
+            output.contentWindow.document.write(code);
+            output.contentWindow.document.close();
+        }
+        
+        editor.addEventListener('input', updateOutput);
+    </script>
+</body>
+</html>
