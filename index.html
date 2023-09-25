@@ -23,12 +23,36 @@
     </style>
 </head>
 <body>
-    <textarea id="editor" placeholder="Write HTML here..."></textarea>
+    <textarea id="editor" placeholder="Écrivez votre code ici..."></textarea>
     <iframe id="output" title="Aperçu"></iframe>
     <script>
         const editor = document.getElementById('editor');
         const output = document.getElementById('output');
         
+        // Fonction pour mettre à jour le contenu de l'éditeur avec le contenu du localStorage
+        function loadEditorContent() {
+            const savedContent = localStorage.getItem('editorContent');
+            if (savedContent) {
+                editor.value = savedContent;
+            }
+        }
+
+        // Fonction pour sauvegarder le contenu de l'éditeur dans le localStorage
+        function saveEditorContent() {
+            const code = editor.value;
+            localStorage.setItem('editorContent', code);
+        }
+
+        // Mettre à jour l'éditeur au chargement de la page
+        loadEditorContent();
+
+        // Mettre à jour le localStorage à chaque modification de l'éditeur
+        editor.addEventListener('input', () => {
+            saveEditorContent();
+            updateOutput();
+        });
+
+        // Fonction pour mettre à jour la sortie en temps réel
         function updateOutput() {
             const code = editor.value;
             output.contentWindow.document.open();
@@ -36,7 +60,8 @@
             output.contentWindow.document.close();
         }
         
-        editor.addEventListener('input', updateOutput);
+        // Mettre à jour la sortie initiale
+        updateOutput();
     </script>
 </body>
 </html>
