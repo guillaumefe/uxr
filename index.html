@@ -7,18 +7,33 @@
     <style>
         body {
             display: flex;
+            flex-direction: column;
+            align-items: stretch;
             height: 100vh;
             margin: 0;
         }
         textarea, iframe {
             flex: 1;
-            height: 100%;
             border: none;
         }
         textarea {
             padding: 10px;
             font-size: 16px;
             resize: none;
+            margin-bottom: 10px;
+        }
+        iframe {
+            max-width: 100%;
+        }
+
+        @media (min-width: 768px) {
+            body {
+                flex-direction: row;
+            }
+            textarea {
+                margin-right: 10px;
+                margin-bottom: 0;
+            }
         }
     </style>
 </head>
