@@ -25,7 +25,42 @@
         iframe {
             max-width: 100%;
         }
-
+        .sauvegardes {
+            position: fixed;
+            left: -200px;
+            top: 0;
+            width: 200px;
+            height: 100%;
+            background-color: #f1f1f1;
+            transition: left 0.3s;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+            overflow-y: auto;
+            z-index: 1000;
+        }
+        .sauvegardes.visible {
+            left: 0;
+        }
+        .sauvegarde-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #ddd;
+        }
+        .sauvegarde-item:hover {
+            background-color: #eee;
+        }
+        .tab {
+            position: fixed;
+            left: 0;
+            top: 50%;
+            width: 20px;
+            height: 60px;
+            background-color: #333;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
         @media (min-width: 768px) {
             body {
                 flex-direction: row;
@@ -40,43 +75,107 @@
 <body>
     <textarea id="editor" placeholder="Écrivez votre code ici..."></textarea>
     <iframe id="output" title="Aperçu"></iframe>
+
+    <div class="tab" id="toggleTab">></div>
+    <div class="sauvegardes" id="sauvegardes">
+        <!-- Sauvegardes affichées ici -->
+    </div>
+
     <script>
         const editor = document.getElementById('editor');
         const output = document.getElementById('output');
-        
-        // Fonction pour mettre à jour le contenu de l'éditeur avec le contenu du localStorage
-        function loadEditorContent() {
-            const savedContent = localStorage.getItem('editorContent');
-            if (savedContent) {
-                editor.value = savedContent;
-            }
+        const sauvegardesDiv = document.getElementById('sauvegardes');
+        const toggleTab = document.getElementById('toggleTab');
+
+        // Ouvrir ou fermer le volet de sauvegardes
+        toggleTab.addEventListener('click', () => {
+            sauvegardesDiv.classList.toggle('visible');
+            toggleTab.textContent = sauvegardesDiv.classList.contains('visible') ? '<' : '>';
+        });
+
+        // Sauvegarder le code dans IndexedDB
+        const dbRequest = indexedDB.open('EditorDB', 1);
+        let db;
+
+        dbRequest.onupgradeneeded = function(event) {
+            db = event.target.result;
+            db.createObjectStore('codes', { autoIncrement: true });
+        };
+
+        dbRequest.onsuccess = function(event) {
+            db = event.target.result;
+            clearEditor();
+            loadSavedCodes();
+        };
+
+        dbRequest.onerror = function() {
+            console.error('Erreur lors de l\'ouverture de la base de données');
+        };
+
+        // Fonction pour vider l'éditeur et les variables d'environnement
+        function clearEditor() {
+            editor.value = '';
+            localStorage.clear(); // On efface aussi le localStorage au cas où
         }
 
-        // Fonction pour sauvegarder le contenu de l'éditeur dans le localStorage
+        // Fonction pour sauvegarder le contenu dans IndexedDB
         function saveEditorContent() {
             const code = editor.value;
-            localStorage.setItem('editorContent', code);
+            const transaction = db.transaction(['codes'], 'readwrite');
+            const store = transaction.objectStore('codes');
+            store.add({ code });
+            loadSavedCodes(); // Rafraîchir la liste des sauvegardes
         }
 
-        // Mettre à jour l'éditeur au chargement de la page
-        loadEditorContent();
+        // Fonction pour charger les codes sauvegardés dans la liste
+        function loadSavedCodes() {
+            const transaction = db.transaction(['codes'], 'readonly');
+            const store = transaction.objectStore('codes');
+            const request = store.getAll();
 
-        // Mettre à jour le localStorage à chaque modification de l'éditeur
+            request.onsuccess = function(event) {
+                const codes = event.target.result;
+                displaySavedCodes(codes);
+            };
+        }
+
+        // Fonction pour afficher la liste des codes sauvegardés
+        function displaySavedCodes(codes) {
+            sauvegardesDiv.innerHTML = '';
+            codes.forEach((codeObj, index) => {
+                const codeItem = document.createElement('div');
+                codeItem.classList.add('sauvegarde-item');
+                codeItem.textContent = `Sauvegarde ${index + 1}`;
+                codeItem.addEventListener('click', () => {
+                    loadCodeInEditor(codeObj.code);
+                });
+                sauvegardesDiv.appendChild(codeItem);
+            });
+        }
+
+        // Fonction pour charger un code sauvegardé dans l'éditeur
+        function loadCodeInEditor(code) {
+            editor.value = code;
+            updateOutput();
+        }
+
+        // Sauvegarder le contenu à chaque modification
         editor.addEventListener('input', () => {
-            saveEditorContent();
             updateOutput();
         });
 
-        // Fonction pour mettre à jour la sortie en temps réel
+        // Mettre à jour la sortie en temps réel
         function updateOutput() {
             const code = editor.value;
             output.contentWindow.document.open();
             output.contentWindow.document.write(code);
             output.contentWindow.document.close();
         }
-        
-        // Mettre à jour la sortie initiale
-        updateOutput();
+
+        // Fonction pour sauvegarder le code manuellement
+        window.addEventListener('beforeunload', () => {
+            saveEditorContent(); // Sauvegarde automatique avant de quitter
+        });
     </script>
 </body>
 </html>
