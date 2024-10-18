@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Éditeur en Direct avec ACE</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: 'Arial', sans-serif;
+        }
+
+        .editor-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 80%;
+            max-width: 1000px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            padding: 20px;
+            background-color: #FFEB3B;
+            position: relative;
+        }
+
+        .fullscreen-icon {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            font-size: 50px;
+            color: #000;
+            z-index: 10;
+        }
+
+        .fullscreen-icon:hover {
+            color: #ff5722;
+        }
+
+        .save-title-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            margin-bottom: 20px;
+            border: 2px solid #FF9800;
+            border-radius: 5px;
+            background-color: #fff59d;
+            box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.1);
+            outline: none;
+        }
+
+        #editor {
+            width: 100%;
+            height: 300px;
+            margin-bottom: 20px;
+            border: 2px solid #4CAF50;
+            border-radius: 5px;
+            box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        iframe {
+            width: 100%;
+            height: 400px;
+            border: 2px solid #2196F3;
+            border-radius: 5px;
+            background-color: #BBDEFB;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            position: fixed;
+            left: 0;
+            top: 50%;
+            width: 20px;
+            height: 60px;
+            background-color: #333;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0 5px 5px 0;
+        }
+
+        .tab:hover {
+            background-color: #555;
+        }
+
+        .sauvegardes {
+            position: fixed;
+            left: -200px;
+            top: 0;
+            width: 200px;
+            height: 100%;
+            background-color: #FFC107;
+            transition: left 0.3s;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+            overflow-y: auto;
+            z-index: 1000;
+            padding: 10px;
+            border-right: 5px solid #FF5722;
+        }
+
+        .sauvegardes.visible {
+            left: 0;
+        }
+
+        .delete-all-btn {
+            background-color: #d32f2f;
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 10px;
+            cursor: pointer;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+
+        .delete-all-btn:hover {
+            background-color: #c62828;
+        }
+
+        .sauvegarde-item {
+            padding: 10px;
+            background-color: #FFCDD2;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sauvegarde-item:hover {
+            background-color: #EF9A9A;
+        }
+
+        .delete-btn {
+            background-color: #e53935;
+            color: white;
+            border: none;
+            padding: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .delete-btn:hover {
+            background-color: #d32f2f;
+        }
+
+        @media (min-width: 768px) {
+            body {
+                flex-direction: row;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="editor-container">
+        <input id="titleInput" class="save-title-input" placeholder="Titre" />
+        
+        <!-- ACE Editor -->
+        <div id="editor" placeholder="Écrivez votre code HTML, CSS et JavaScript ici..."></div>
+
+        <!-- Icône pour mettre en plein écran -->
+        <span class="fullscreen-icon" id="fullscreenEditorIcon">🖵</span>
+
+        <iframe id="output" title="Aperçu"></iframe>
+    </div>
+
+    <div class="tab" id="toggleTab">></div>
+    <div class="sauvegardes" id="sauvegardes">
+        <button class="delete-all-btn" id="deleteAll">Tout effacer</button>
+    </div>
+
+    <!-- Inclure le script ACE Editor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
+
+    <script>
+        // Constante pour le nombre maximum de sauvegardes
+        const MAX_SAVES = 10;
+
+        // Configuration ACE Editor
+        const editor = ace.edit("editor");
+        editor.setTheme("ace/theme/monokai");
+        editor.session.setMode("ace/mode/html"); // Mode HTML par défaut
+        editor.setValue(`<!-- Écrivez votre code HTML, CSS et JavaScript ici... -->
+<html>
+  <head>
+    <style>
+      body { font-family: Arial, sans-serif; background-color: #f0f0f0; color: #333; }
+    </style>
+  </head>
+  <body>
+    <h1>Hello World</h1>
+    <p>Ceci est un exemple de texte.</p>
+  </body>
+</html>`);
+
+        const output = document.getElementById('output');
+        const editorSection = document.querySelector('.editor-container');
+        const toggleTab = document.getElementById('toggleTab');
+        const titleInput = document.getElementById('titleInput');
+        const fullscreenEditorIcon = document.getElementById('fullscreenEditorIcon');
+        let deleteAllBtn = document.getElementById('deleteAll');
+        let currentSaveTitle = 'Sauvegarde en cours';
+
+        // Toggle pour le menu des sauvegardes
+        toggleTab.addEventListener('click', () => {
+            sauvegardesDiv.classList.toggle('visible');
+            toggleTab.textContent = sauvegardesDiv.classList.contains('visible') ? '<' : '>';
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!sauvegardesDiv.contains(event.target) && !toggleTab.contains(event.target)) {
+                sauvegardesDiv.classList.remove('visible');
+                toggleTab.textContent = '>';
+            }
+        });
+
+        const dbRequest = indexedDB.open('EditorDB', 1);
+        let db;
+
+        dbRequest.onupgradeneeded = function(event) {
+            db = event.target.result;
+            db.createObjectStore('codes', { autoIncrement: true });
+        };
+
+        dbRequest.onsuccess = function(event) {
+            db = event.target.result;
+            addNewSave();
+            loadSavedCodes();
+        };
+
+        dbRequest.onerror = function() {
+            console.error('Erreur lors de l\'ouverture de la base de données');
+        };
+
+        // Ajout d'une nouvelle sauvegarde à chaque rechargement
+        function addNewSave() {
+            const code = editor.getValue().trim();
+            const transaction = db.transaction(['codes'], 'readwrite');
+            const store = transaction.objectStore('codes');
+            const timestamp = new Date().toLocaleString();
+            store.add({ code, timestamp });
+        }
+
+        function loadSavedCodes() {
+            const transaction = db.transaction(['codes'], 'readonly');
+            const store = transaction.objectStore('codes');
+            const request = store.getAll();
+
+            request.onsuccess = function(event) {
+                let codes = event.target.result.filter(codeObj => codeObj.code.trim() !== "");
+                codes = codes.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                displaySavedCodes(codes);
+            };
+        }
+
+        function displaySavedCodes(codes) {
+            sauvegardesDiv.innerHTML = '<button class="delete-all-btn" id="deleteAll">Tout effacer</button>';
+            codes.slice(0, MAX_SAVES).forEach((codeObj, index) => {
+                const codeItem = document.createElement('div');
+                codeItem.classList.add('sauvegarde-item');
+                codeItem.innerHTML = `
+                    <span>Sauvegarde ${index + 1} (${codeObj.timestamp})</span>
+                    <button class="delete-btn">Supprimer</button>
+                `;
+                codeItem.querySelector('.delete-btn').addEventListener('click', () => {
+                    const confirmDelete = confirm('Voulez-vous vraiment supprimer cette sauvegarde ?');
+                    if (confirmDelete) {
+                        deleteSavedCode(codeObj);
+                    }
+                });
+                codeItem.addEventListener('click', () => {
+                    loadCodeInEditor(codeObj.code);
+                });
+                sauvegardesDiv.appendChild(codeItem);
+            });
+            deleteAllBtn = document.getElementById('deleteAll');
+            deleteAllBtn.addEventListener('click', () => {
+                const confirmDeleteAll = confirm('Voulez-vous vraiment supprimer toutes les sauvegardes ?');
+                if (confirmDeleteAll) {
+                    deleteAllSavedCodes();
+                }
+            });
+        }
+
+        function loadCodeInEditor(code) {
+            editor.setValue(code);
+            updateOutput();
+        }
+
+        function deleteSavedCode(codeObj) {
+            const transaction = db.transaction(['codes'], 'readwrite');
+            const store = transaction.objectStore('codes');
+            store.openCursor().onsuccess = function(event) {
+                const cursor = event.target.result;
+                if (cursor) {
+                    if (cursor.value.code === codeObj.code && cursor.value.timestamp === codeObj.timestamp) {
+                        cursor.delete();
+                        loadSavedCodes();
+                    }
+                    cursor.continue();
+                }
+            };
+        }
+
+        function deleteAllSavedCodes() {
+            const transaction = db.transaction(['codes'], 'readwrite');
+            const store = transaction.objectStore('codes');
+            store.clear().onsuccess = function() {
+                loadSavedCodes();
+            };
+        }
+
+        titleInput.addEventListener('input', (event) => {
+            currentSaveTitle = event.target.value;
+        });
+
+        // Fonction de toggle plein écran (imitation du comportement d'ACE)
+        function toggleFullScreen(element) {
+            if (!document.fullscreenElement) {
+                element.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Double-clic pour mettre l'éditeur en plein écran ou revenir à l'état normal
+        editor.container.addEventListener('dblclick', () => {
+            toggleFullScreen(editor.container);
+        });
+
+        // Double-clic pour mettre l'iframe en plein écran ou revenir à l'état normal
+        output.addEventListener('dblclick', () => {
+            toggleFullScreen(output);
+        });
+
+        // Mise à jour du contenu de la visualisation en temps réel
+        editor.session.on('change', updateOutput);
+
+        function updateOutput() {
+            const code = editor.getValue();
+            output.contentWindow.document.open();
+            output.contentWindow.document.write(code);
+            output.contentWindow.document.close();
+        }
+
+        window.addEventListener('beforeunload', () => {
+            saveEditorContent();
+        });
+    </script>
+</body>
+</html>
