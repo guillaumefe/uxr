@@ -42,11 +42,20 @@
         }
         .sauvegarde-item {
             padding: 10px;
-            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
             border-bottom: 1px solid #ddd;
+            align-items: center;
         }
         .sauvegarde-item:hover {
             background-color: #eee;
+        }
+        .delete-btn {
+            background-color: red;
+            color: white;
+            border: none;
+            padding: 5px;
+            cursor: pointer;
         }
         .tab {
             position: fixed;
@@ -60,6 +69,15 @@
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+        .delete-all-btn {
+            background-color: red;
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 10px;
+            cursor: pointer;
+            margin-top: 10px;
         }
         @media (min-width: 768px) {
             body {
@@ -78,6 +96,7 @@
 
     <div class="tab" id="toggleTab">></div>
     <div class="sauvegardes" id="sauvegardes">
+        <button class="delete-all-btn" id="deleteAll">Tout effacer</button>
         <!-- Sauvegardes affichées ici -->
     </div>
 
@@ -86,11 +105,20 @@
         const output = document.getElementById('output');
         const sauvegardesDiv = document.getElementById('sauvegardes');
         const toggleTab = document.getElementById('toggleTab');
+        let deleteAllBtn = document.getElementById('deleteAll');
 
         // Ouvrir ou fermer le volet de sauvegardes
         toggleTab.addEventListener('click', () => {
             sauvegardesDiv.classList.toggle('visible');
             toggleTab.textContent = sauvegardesDiv.classList.contains('visible') ? '<' : '>';
+        });
+
+        // Fermer le volet en cliquant à l'extérieur
+        document.addEventListener('click', (event) => {
+            if (!sauvegardesDiv.contains(event.target) && !toggleTab.contains(event.target)) {
+                sauvegardesDiv.classList.remove('visible');
+                toggleTab.textContent = '>';
+            }
         });
 
         // Sauvegarder le code dans IndexedDB
@@ -120,11 +148,13 @@
 
         // Fonction pour sauvegarder le contenu dans IndexedDB
         function saveEditorContent() {
-            const code = editor.value;
-            const transaction = db.transaction(['codes'], 'readwrite');
-            const store = transaction.objectStore('codes');
-            store.add({ code });
-            loadSavedCodes(); // Rafraîchir la liste des sauvegardes
+            const code = editor.value.trim(); // Supprime les espaces inutiles
+            if (code) {
+                const transaction = db.transaction(['codes'], 'readwrite');
+                const store = transaction.objectStore('codes');
+                store.add({ code });
+                loadSavedCodes(); // Rafraîchir la liste des sauvegardes
+            }
         }
 
         // Fonction pour charger les codes sauvegardés dans la liste
@@ -135,28 +165,66 @@
 
             request.onsuccess = function(event) {
                 const codes = event.target.result;
-                displaySavedCodes(codes);
+                const nonEmptyCodes = codes.filter(codeObj => codeObj.code.trim() !== ""); // Filtrer les codes vides
+                displaySavedCodes(nonEmptyCodes);
             };
         }
 
         // Fonction pour afficher la liste des codes sauvegardés
         function displaySavedCodes(codes) {
-            sauvegardesDiv.innerHTML = '';
+            sauvegardesDiv.innerHTML = '<button class="delete-all-btn" id="deleteAll">Tout effacer</button>';
             codes.forEach((codeObj, index) => {
                 const codeItem = document.createElement('div');
                 codeItem.classList.add('sauvegarde-item');
-                codeItem.textContent = `Sauvegarde ${index + 1}`;
+                codeItem.innerHTML = `
+                    <span>Sauvegarde ${index + 1}</span>
+                    <button class="delete-btn">Supprimer</button>
+                `;
+                codeItem.querySelector('.delete-btn').addEventListener('click', () => {
+                    deleteSavedCode(index);
+                });
                 codeItem.addEventListener('click', () => {
                     loadCodeInEditor(codeObj.code);
                 });
                 sauvegardesDiv.appendChild(codeItem);
             });
+            // Re-bind the "Tout effacer" button event
+            deleteAllBtn = document.getElementById('deleteAll');
+            deleteAllBtn.addEventListener('click', deleteAllSavedCodes);
         }
 
         // Fonction pour charger un code sauvegardé dans l'éditeur
         function loadCodeInEditor(code) {
             editor.value = code;
             updateOutput();
+        }
+
+        // Fonction pour supprimer un code sauvegardé
+        function deleteSavedCode(id) {
+            const transaction = db.transaction(['codes'], 'readwrite');
+            const store = transaction.objectStore('codes');
+            const request = store.getAll();
+
+            request.onsuccess = function(event) {
+                const codes = event.target.result;
+                if (codes[id]) {
+                    const deleteTransaction = db.transaction(['codes'], 'readwrite');
+                    const deleteStore = deleteTransaction.objectStore('codes');
+                    deleteStore.delete(id + 1); // IDs are indexed from 1, not 0.
+                    loadSavedCodes(); // Refresh after deletion
+                }
+            };
+        }
+
+        // Fonction pour tout supprimer
+        function deleteAllSavedCodes() {
+            const transaction = db.transaction(['codes'], 'readwrite');
+            const store = transaction.objectStore('codes');
+            const clearRequest = store.clear();
+
+            clearRequest.onsuccess = function() {
+                loadSavedCodes(); // Refresh after clearing all
+            };
         }
 
         // Sauvegarder le contenu à chaque modification
