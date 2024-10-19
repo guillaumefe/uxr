@@ -232,11 +232,14 @@
 
         window[objectName].output = document.getElementById('output');
 
-        const dbRequest = indexedDB.open('EditorDB', 1);
+        const dbRequest = indexedDB.open('EditorDB', 2);  // Augmentation de la version de la base de données pour s'assurer que l'objet 'tempCode' est créé
 
         dbRequest.onupgradeneeded = function(event) {
             window[objectName].db = event.target.result;
-            window[objectName].db.createObjectStore('tempCode', { keyPath: 'id' });
+
+            if (!window[objectName].db.objectStoreNames.contains('tempCode')) {
+                window[objectName].db.createObjectStore('tempCode', { keyPath: 'id' });  // Création de l'objet 'tempCode'
+            }
         };
 
         dbRequest.onsuccess = function(event) {
