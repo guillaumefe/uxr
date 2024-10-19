@@ -36,7 +36,7 @@
             align-items: center;
             justify-content: space-between;
             width: 100%;
-            margin-top: 20px; /* Ajout de la marge supérieure pour la visibilité */
+            margin-top: 20px;
         }
 
         .save-title-input {
@@ -75,7 +75,6 @@
             box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.1);
         }
 
-        /* Languette sous le champ de code */
         .toggle-fullscreen-editor {
             cursor: pointer;
             background-color: #333;
@@ -88,7 +87,6 @@
             margin: 10px auto;
         }
 
-        /* Conteneur de l'iframe */
         .iframe-container {
             width: 100%;
             height: 400px;
@@ -99,7 +97,6 @@
             cursor: pointer;
         }
 
-        /* Languette au-dessus du champ de visualisation */
         .toggle-fullscreen-iframe {
             cursor: pointer;
             background-color: #333;
@@ -145,7 +142,7 @@
 
         .sauvegardes {
             position: fixed;
-            left: -240px; /* Position hors de l'écran quand il est fermé */
+            left: -240px;
             width: 220px;
             height: 100%;
             background-color: #FFC107;
@@ -269,16 +266,13 @@
             return Array.from({ length }, () => letters[Math.floor(Math.random() * letters.length)]).join('');
         }
 
-        // Récupérer ou générer un nom pour l'objet si non présent
-        let objectName = localStorage.getItem('objectName');
-        if (!objectName) {
-            objectName = generateRandomName();
-            localStorage.setItem('objectName', objectName);
-        }
+        // Utiliser un nom d'objet aléatoire pour éviter les doublons
+        let objectName = localStorage.getItem('objectName') || generateRandomName();
+        localStorage.setItem('objectName', objectName);
 
         // Assigner cet objet au window avec le nom aléatoire
         window[objectName] = {
-            MAX_SAVES: 10, // Limite du nombre de sauvegardes
+            MAX_SAVES: 10,
             editor: null,
             output: null,
             db: null,
@@ -295,23 +289,22 @@
         window[objectName].editor = ace.edit("editor");
         window[objectName].editor.setTheme("ace/theme/monokai");
         window[objectName].editor.session.setMode("ace/mode/html");
-        window[objectName].editor.focus(); // Focus automatique sur l'éditeur
+        window[objectName].editor.focus();
 
         window[objectName].output = document.getElementById('output');
 
-        const dbRequest = indexedDB.open('EditorDB', 2);  // Augmentation de la version de la base de données pour s'assurer que l'objet 'tempCode' est créé
+        const dbRequest = indexedDB.open('EditorDB', 2);
 
         dbRequest.onupgradeneeded = function(event) {
             window[objectName].db = event.target.result;
-
             if (!window[objectName].db.objectStoreNames.contains('tempCode')) {
-                window[objectName].db.createObjectStore('tempCode', { keyPath: 'id' });  // Création de l'objet 'tempCode'
+                window[objectName].db.createObjectStore('tempCode', { keyPath: 'id' });
             }
         };
 
         dbRequest.onsuccess = function(event) {
             window[objectName].db = event.target.result;
-            loadCurrentCode();  // Charger la sauvegarde temporaire si elle existe
+            loadCurrentCode();
         };
 
         dbRequest.onerror = function() {
@@ -343,16 +336,24 @@
 
         // Sauvegarder manuellement le contenu actuel avec un titre
         function saveEditorContent() {
-            const title = window[objectName].titleInput.value.trim();
+            let title = window[objectName].titleInput.value.trim();
             const code = window[objectName].editor.getValue().trim();
 
             // Si le titre est vide, utiliser un nom générique
-            const generatedTitle = title || `Sauvegarde ${new Date().toLocaleString()}`;
+            if (!title) {
+                title = `Sauvegarde sans titre`;
+            }
+
+            // Vérifier que le code n'est pas vide
+            if (!code) {
+                alert("Le contenu est vide. Sauvegarde annulée.");
+                return;
+            }
 
             const transaction = window[objectName].db.transaction(['tempCode'], 'readwrite');
             const store = transaction.objectStore('tempCode');
             const timestamp = new Date().toLocaleString();
-            const newSave = { id: `save_${Date.now()}`, title: generatedTitle, code, timestamp };
+            const newSave = { id: `save_${Date.now()}`, title, code, timestamp };
 
             store.add(newSave);
             loadSavedCodes(); // Recharger les sauvegardes après avoir ajouté une nouvelle sauvegarde
@@ -372,11 +373,8 @@
         }
 
         function displaySavedCodes(codes) {
-            // Vider les sauvegardes existantes
             window[objectName].savesContainer.innerHTML = ''; 
-
-            // Ajouter les sauvegardes dans l'ordre décroissant (la plus récente en premier)
-            codes.slice(0, window[objectName].MAX_SAVES).forEach((codeObj, index) => {
+            codes.slice(0, window[objectName].MAX_SAVES).forEach((codeObj) => {
                 const codeItem = document.createElement('div');
                 codeItem.classList.add('sauvegarde-item');
                 codeItem.innerHTML = `
@@ -392,7 +390,7 @@
                 codeItem.addEventListener('click', () => {
                     loadCodeInEditor(codeObj.code);
                 });
-                window[objectName].savesContainer.appendChild(codeItem);  // Ajouter les sauvegardes dans le conteneur en bas
+                window[objectName].savesContainer.appendChild(codeItem);
             });
         }
 
@@ -424,7 +422,6 @@
             };
         }
 
-        // Bouton "Tout effacer"
         window[objectName].deleteAllBtn.addEventListener('click', () => {
             const confirmDeleteAll = confirm('Voulez-vous vraiment supprimer toutes les sauvegardes ?');
             if (confirmDeleteAll) {
@@ -432,22 +429,19 @@
             }
         });
 
-        // Bouton "Sauvegarder"
         window[objectName].saveBtn.addEventListener('click', () => {
-            saveEditorContent();  // Sauvegarde manuelle
+            saveEditorContent();
         });
 
-        // Fermeture du volet lorsque l'on clique sur n'importe quel élément qui n'est pas le volet
         document.addEventListener('click', (event) => {
             const sauvegardesDiv = window[objectName].sauvegardesDiv;
             if (!sauvegardesDiv.contains(event.target) && !window[objectName].toggleTab.contains(event.target)) {
                 sauvegardesDiv.classList.remove('visible');
-                sauvegardesDiv.style.left = '-240px'; // Fermer le volet
-                window[objectName].toggleTab.classList.remove('hidden');  // Réafficher la languette
+                sauvegardesDiv.style.left = '-240px';
+                window[objectName].toggleTab.classList.remove('hidden');
             }
         });
 
-        // Fermeture du volet si on clique sur la div qui encapsule l'iframe
         document.getElementById('iframeContainer').addEventListener('click', () => {
             const sauvegardesDiv = window[objectName].sauvegardesDiv;
             sauvegardesDiv.classList.remove('visible');
@@ -455,29 +449,23 @@
             window[objectName].toggleTab.classList.remove('hidden');
         });
 
-        // Clic sur la languette pour mettre l'éditeur en plein écran
         document.getElementById('fullscreenEditorBtn').addEventListener('click', () => {
             toggleFullScreen(window[objectName].editor.container);
         });
 
-        // Clic sur la languette pour mettre la visualisation en plein écran
         document.getElementById('fullscreenIframeBtn').addEventListener('click', () => {
             toggleFullScreen(document.getElementById('iframeContainer'));
         });
 
-        // Languette pour ouvrir le volet
         window[objectName].toggleTab.addEventListener('click', () => {
             const sauvegardesDiv = window[objectName].sauvegardesDiv;
             sauvegardesDiv.classList.toggle('visible');
             sauvegardesDiv.style.left = sauvegardesDiv.classList.contains('visible') ? '0' : '-240px';
-
-            // Masquer la languette quand le volet est ouvert
             if (sauvegardesDiv.classList.contains('visible')) {
                 window[objectName].toggleTab.classList.add('hidden');
             }
         });
 
-        // Fonction de toggle plein écran
         function toggleFullScreen(element) {
             if (!document.fullscreenElement) {
                 element.requestFullscreen();
@@ -486,15 +474,14 @@
             }
         }
 
-        // Sauvegarde en temps réel à chaque frappe dans l'éditeur
         window[objectName].editor.session.on('change', () => {
-            saveCurrentCode();  // Sauvegarder le contenu en cours à chaque interaction
-            updateOutput();  // Mettre à jour la visualisation en temps réel
+            saveCurrentCode();
+            updateOutput();
         });
 
         function updateOutput() {
             if (!window[objectName].output || !window[objectName].output.contentWindow || !window[objectName].output.contentWindow.document) {
-                return; // Eviter l'erreur si l'iframe est introuvable
+                return;
             }
             const code = window[objectName].editor.getValue();
             window[objectName].output.contentWindow.document.open();
