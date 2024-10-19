@@ -188,7 +188,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
 
     <script>
-        const MAX_SAVES = 10; // Constante pour le nombre maximum de sauvegardes
+        // Assurer que MAX_SAVES n'est déclaré qu'une fois
+        if (typeof MAX_SAVES === 'undefined') {
+            const MAX_SAVES = 10; // Constante pour le nombre maximum de sauvegardes
+        }
+        
         const sauvegardesDiv = document.getElementById('sauvegardes'); // Correction de la référence
 
         // Configuration ACE Editor
@@ -263,25 +267,29 @@
 
         // Afficher le bouton "Tout effacer" toujours en première position
         function displayDeleteAllButton() {
-            if (!document.getElementById('deleteAll')) {
-                const deleteAllButton = document.createElement('button');
-                deleteAllButton.classList.add('delete-all-btn');
-                deleteAllButton.id = 'deleteAll';
-                deleteAllButton.textContent = 'Tout effacer';
-                deleteAllButton.addEventListener('click', () => {
-                    const confirmDeleteAll = confirm('Voulez-vous vraiment supprimer toutes les sauvegardes ?');
-                    if (confirmDeleteAll) {
-                        deleteAllSavedCodes();
-                    }
-                });
-                sauvegardesDiv.insertBefore(deleteAllButton, sauvegardesDiv.firstChild);
+            // Supprimer l'ancien bouton et créer un nouveau pour éviter les doublons
+            if (deleteAllBtn) {
+                deleteAllBtn.remove();
             }
+
+            const deleteAllButton = document.createElement('button');
+            deleteAllButton.classList.add('delete-all-btn');
+            deleteAllButton.id = 'deleteAll';
+            deleteAllButton.textContent = 'Tout effacer';
+            deleteAllButton.addEventListener('click', () => {
+                const confirmDeleteAll = confirm('Voulez-vous vraiment supprimer toutes les sauvegardes ?');
+                if (confirmDeleteAll) {
+                    deleteAllSavedCodes();
+                }
+            });
+            sauvegardesDiv.prepend(deleteAllButton);  // Assurer qu'il est toujours en haut
+            deleteAllBtn = deleteAllButton;  // Mémoriser pour suppression éventuelle
         }
 
         function displaySavedCodes(codes) {
             // Vider les sauvegardes existantes sauf le bouton "Tout effacer"
-            sauvegardesDiv.innerHTML = '';
-            displayDeleteAllButton(); // S'assurer que le bouton reste en première position
+            const sauvegardes = document.querySelectorAll('.sauvegarde-item');
+            sauvegardes.forEach(item => item.remove());
 
             codes.slice(0, MAX_SAVES).forEach((codeObj, index) => {
                 const codeItem = document.createElement('div');
@@ -299,7 +307,7 @@
                 codeItem.addEventListener('click', () => {
                     loadCodeInEditor(codeObj.code);
                 });
-                sauvegardesDiv.insertBefore(codeItem, sauvegardesDiv.firstChild); // Inverser l'ordre d'affichage
+                sauvegardesDiv.appendChild(codeItem);  // Ajouter les sauvegardes après le bouton "Tout effacer"
             });
         }
 
@@ -372,6 +380,9 @@
         editor.session.on('change', updateOutput);
 
         function updateOutput() {
+            if (!output || !output.contentWindow || !output.contentWindow.document) {
+                return; // Eviter l'erreur si l'iframe est introuvable
+            }
             const code = editor.getValue();
             output.contentWindow.document.open();
             output.contentWindow.document.write(code);
