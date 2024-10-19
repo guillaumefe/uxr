@@ -188,20 +188,20 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
 
     <script>
-        // Générer un nom aléatoire
+        // Fonction pour générer un nom aléatoire
         function generateRandomName(length = 8) {
             const letters = 'abcdefghijklmnopqrstuvwxyz';
             return Array.from({ length }, () => letters[Math.floor(Math.random() * letters.length)]).join('');
         }
 
-        // Récupérer le nom de l'objet dans localStorage ou en créer un nouveau
-        let objectName = localStorage.getItem('appObjectName');
+        // Récupérer ou générer un nom pour l'objet si non présent
+        let objectName = localStorage.getItem('objectName');
         if (!objectName) {
             objectName = generateRandomName();
-            localStorage.setItem('appObjectName', objectName);
+            localStorage.setItem('objectName', objectName);
         }
 
-        // Création de l'objet global pour gérer tout l'état de l'application
+        // Assigner cet objet au window avec le nom aléatoire
         window[objectName] = {
             MAX_SAVES: 10,
             editor: null,
