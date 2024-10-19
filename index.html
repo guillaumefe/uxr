@@ -199,6 +199,10 @@
             margin-top: auto;
         }
 
+        .sauvegarde-item:first-child {
+            display: none; /* Masquer la première sauvegarde */
+        }
+
         .sauvegarde-item {
             padding: 10px;
             background-color: #FFCDD2;
@@ -209,10 +213,6 @@
             align-items: center;
             width: 100%;
             box-sizing: border-box;
-        }
-
-        .sauvegarde-item:first-child {
-            display: none; /* Masquer la première sauvegarde */
         }
 
         .sauvegarde-item button {
@@ -280,14 +280,14 @@
         }
 
         // Utiliser un nom d'objet aléatoire pour éviter les doublons
-        let objectName = localStorage.getItem('objectName');
-        if (!objectName) {
-            objectName = generateRandomName();
-            localStorage.setItem('objectName', objectName);
+        let randomObjectName = localStorage.getItem('randomObjectName');
+        if (!randomObjectName) {
+            randomObjectName = generateRandomName();
+            localStorage.setItem('randomObjectName', randomObjectName);
         }
 
         // Assigner cet objet au window avec le nom aléatoire
-        window[objectName] = {
+        window[randomObjectName] = {
             MAX_SAVES: 10,
             editor: null,
             output: null,
@@ -302,24 +302,24 @@
         };
 
         // Configuration ACE Editor
-        window[objectName].editor = ace.edit("editor");
-        window[objectName].editor.setTheme("ace/theme/monokai");
-        window[objectName].editor.session.setMode("ace/mode/html");
-        window[objectName].editor.focus(); // Focus automatique sur l'éditeur
+        window[randomObjectName].editor = ace.edit("editor");
+        window[randomObjectName].editor.setTheme("ace/theme/monokai");
+        window[randomObjectName].editor.session.setMode("ace/mode/html");
+        window[randomObjectName].editor.focus(); // Focus automatique sur l'éditeur
 
-        window[objectName].output = document.getElementById('output');
+        window[randomObjectName].output = document.getElementById('output');
 
         const dbRequest = indexedDB.open('EditorDB', 2);
 
         dbRequest.onupgradeneeded = function(event) {
-            window[objectName].db = event.target.result;
-            if (!window[objectName].db.objectStoreNames.contains('tempCode')) {
-                window[objectName].db.createObjectStore('tempCode', { keyPath: 'id' });
+            window[randomObjectName].db = event.target.result;
+            if (!window[randomObjectName].db.objectStoreNames.contains('tempCode')) {
+                window[randomObjectName].db.createObjectStore('tempCode', { keyPath: 'id' });
             }
         };
 
         dbRequest.onsuccess = function(event) {
-            window[objectName].db = event.target.result;
+            window[randomObjectName].db = event.target.result;
             loadCurrentCode();
             loadSavedCodes();
         };
@@ -330,9 +330,9 @@
 
         // Sauvegarder en temps réel le contenu actuel et le titre
         function saveCurrentCode() {
-            const code = window[objectName].editor.getValue().trim();
-            const title = window[objectName].titleInput.value.trim();
-            const transaction = window[objectName].db.transaction(['tempCode'], 'readwrite');
+            const code = window[randomObjectName].editor.getValue().trim();
+            const title = window[randomObjectName].titleInput.value.trim();
+            const transaction = window[randomObjectName].db.transaction(['tempCode'], 'readwrite');
             const store = transaction.objectStore('tempCode');
             store.put({ id: 'current', code, title });
             localStorage.setItem('title', title); // Sauvegarder le titre dans localStorage
@@ -340,15 +340,15 @@
 
         // Recharger le code temporaire et le titre au rechargement de la page
         function loadCurrentCode() {
-            const transaction = window[objectName].db.transaction(['tempCode'], 'readonly');
+            const transaction = window[randomObjectName].db.transaction(['tempCode'], 'readonly');
             const store = transaction.objectStore('tempCode');
             const request = store.get('current');
 
             request.onsuccess = function(event) {
                 const result = event.target.result;
                 if (result) {
-                    window[objectName].editor.setValue(result.code);
-                    window[objectName].titleInput.value = localStorage.getItem('title') || result.title || '';
+                    window[randomObjectName].editor.setValue(result.code);
+                    window[randomObjectName].titleInput.value = localStorage.getItem('title') || result.title || '';
                     updateOutput();
                 }
             };
@@ -356,8 +356,8 @@
 
         // Sauvegarder manuellement le contenu actuel avec un titre
         function saveEditorContent() {
-            let title = window[objectName].titleInput.value.trim();
-            const code = window[objectName].editor.getValue().trim();
+            let title = window[randomObjectName].titleInput.value.trim();
+            const code = window[randomObjectName].editor.getValue().trim();
 
             // Si le titre est vide, utiliser un nom générique
             if (!title) {
@@ -370,7 +370,7 @@
                 return;
             }
 
-            const transaction = window[objectName].db.transaction(['tempCode'], 'readwrite');
+            const transaction = window[randomObjectName].db.transaction(['tempCode'], 'readwrite');
             const store = transaction.objectStore('tempCode');
             const timestamp = new Date().toLocaleString();
             const newSave = { id: `save_${Date.now()}`, title, code, timestamp };
@@ -381,7 +381,7 @@
 
         // Charger et afficher les sauvegardes
         function loadSavedCodes() {
-            const transaction = window[objectName].db.transaction(['tempCode'], 'readonly');
+            const transaction = window[randomObjectName].db.transaction(['tempCode'], 'readonly');
             const store = transaction.objectStore('tempCode');
             const request = store.getAll();
 
@@ -393,8 +393,8 @@
         }
 
         function displaySavedCodes(codes) {
-            window[objectName].savesContainer.innerHTML = ''; 
-            codes.slice(0, window[objectName].MAX_SAVES).forEach((codeObj) => {
+            window[randomObjectName].savesContainer.innerHTML = ''; 
+            codes.slice(0, window[randomObjectName].MAX_SAVES).forEach((codeObj) => {
                 const codeItem = document.createElement('div');
                 codeItem.classList.add('sauvegarde-item');
                 codeItem.innerHTML = `
@@ -410,17 +410,17 @@
                 codeItem.addEventListener('click', () => {
                     loadCodeInEditor(codeObj.code);
                 });
-                window[objectName].savesContainer.appendChild(codeItem);
+                window[randomObjectName].savesContainer.appendChild(codeItem);
             });
         }
 
         function loadCodeInEditor(code) {
-            window[objectName].editor.setValue(code);
+            window[randomObjectName].editor.setValue(code);
             updateOutput();
         }
 
         function deleteSavedCode(codeObj) {
-            const transaction = window[objectName].db.transaction(['tempCode'], 'readwrite');
+            const transaction = window[randomObjectName].db.transaction(['tempCode'], 'readwrite');
             const store = transaction.objectStore('tempCode');
             store.openCursor().onsuccess = function(event) {
                 const cursor = event.target.result;
@@ -435,54 +435,54 @@
         }
 
         function deleteAllSavedCodes() {
-            const transaction = window[objectName].db.transaction(['tempCode'], 'readwrite');
+            const transaction = window[randomObjectName].db.transaction(['tempCode'], 'readwrite');
             const store = transaction.objectStore('tempCode');
             store.clear().onsuccess = function() {
                 loadSavedCodes();
             };
         }
 
-        window[objectName].deleteAllBtn.addEventListener('click', () => {
+        window[randomObjectName].deleteAllBtn.addEventListener('click', () => {
             const confirmDeleteAll = confirm('Voulez-vous vraiment supprimer toutes les sauvegardes ?');
             if (confirmDeleteAll) {
                 deleteAllSavedCodes();
             }
         });
 
-        window[objectName].saveBtn.addEventListener('click', () => {
+        window[randomObjectName].saveBtn.addEventListener('click', () => {
             saveEditorContent();
         });
 
         document.addEventListener('click', (event) => {
-            const sauvegardesDiv = window[objectName].sauvegardesDiv;
-            if (!sauvegardesDiv.contains(event.target) && !window[objectName].toggleTab.contains(event.target)) {
+            const sauvegardesDiv = window[randomObjectName].sauvegardesDiv;
+            if (!sauvegardesDiv.contains(event.target) && !window[randomObjectName].toggleTab.contains(event.target)) {
                 sauvegardesDiv.classList.remove('visible');
                 sauvegardesDiv.style.left = '-240px';
-                window[objectName].toggleTab.classList.remove('hidden');
+                window[randomObjectName].toggleTab.classList.remove('hidden');
             }
         });
 
         document.getElementById('iframeContainer').addEventListener('click', () => {
-            const sauvegardesDiv = window[objectName].sauvegardesDiv;
+            const sauvegardesDiv = window[randomObjectName].sauvegardesDiv;
             sauvegardesDiv.classList.remove('visible');
             sauvegardesDiv.style.left = '-240px';
-            window[objectName].toggleTab.classList.remove('hidden');
+            window[randomObjectName].toggleTab.classList.remove('hidden');
         });
 
         document.getElementById('fullscreenEditorBtn').addEventListener('click', () => {
-            toggleFullScreen(window[objectName].editor.container);
+            toggleFullScreen(window[randomObjectName].editor.container);
         });
 
         document.getElementById('fullscreenIframeBtn').addEventListener('click', () => {
             toggleFullScreen(document.getElementById('iframeContainer'));
         });
 
-        window[objectName].toggleTab.addEventListener('click', () => {
-            const sauvegardesDiv = window[objectName].sauvegardesDiv;
+        window[randomObjectName].toggleTab.addEventListener('click', () => {
+            const sauvegardesDiv = window[randomObjectName].sauvegardesDiv;
             sauvegardesDiv.classList.toggle('visible');
             sauvegardesDiv.style.left = sauvegardesDiv.classList.contains('visible') ? '0' : '-240px';
             if (sauvegardesDiv.classList.contains('visible')) {
-                window[objectName].toggleTab.classList.add('hidden');
+                window[randomObjectName].toggleTab.classList.add('hidden');
             }
         });
 
@@ -494,19 +494,19 @@
             }
         }
 
-        window[objectName].editor.session.on('change', () => {
+        window[randomObjectName].editor.session.on('change', () => {
             saveCurrentCode();
             updateOutput();
         });
 
         function updateOutput() {
-            if (!window[objectName].output || !window[objectName].output.contentWindow || !window[objectName].output.contentWindow.document) {
+            if (!window[randomObjectName].output || !window[randomObjectName].output.contentWindow || !window[randomObjectName].output.contentWindow.document) {
                 return;
             }
-            const code = window[objectName].editor.getValue();
-            window[objectName].output.contentWindow.document.open();
-            window[objectName].output.contentWindow.document.write(code);
-            window[objectName].output.contentWindow.document.close();
+            const code = window[randomObjectName].editor.getValue();
+            window[randomObjectName].output.contentWindow.document.open();
+            window[randomObjectName].output.contentWindow.document.write(code);
+            window[randomObjectName].output.contentWindow.document.close();
         }
     </script>
 </body>
