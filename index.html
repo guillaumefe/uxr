@@ -75,6 +75,20 @@
             box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.1);
         }
 
+        /* Languette sous le champ de code */
+        .toggle-fullscreen-editor {
+            cursor: pointer;
+            background-color: #333;
+            color: white;
+            padding: 5px;
+            text-align: center;
+            border-radius: 0 0 5px 5px;
+            font-size: 14px;
+            width: 100px;
+            margin: 10px auto;
+        }
+
+        /* Conteneur de l'iframe */
         .iframe-container {
             width: 100%;
             height: 400px;
@@ -83,6 +97,19 @@
             background-color: #BBDEFB;
             position: relative;
             cursor: pointer;
+        }
+
+        /* Languette au-dessus du champ de visualisation */
+        .toggle-fullscreen-iframe {
+            cursor: pointer;
+            background-color: #333;
+            color: white;
+            padding: 5px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+            font-size: 14px;
+            width: 100px;
+            margin: 10px auto;
         }
 
         .iframe-container iframe {
@@ -209,6 +236,12 @@
         <!-- ACE Editor -->
         <div id="editor"></div>
 
+        <!-- Languette sous le champ de code pour le mettre en plein écran -->
+        <div class="toggle-fullscreen-editor" id="fullscreenEditorBtn">Plein écran</div>
+
+        <!-- Languette au-dessus de l'iframe pour la mettre en plein écran -->
+        <div class="toggle-fullscreen-iframe" id="fullscreenIframeBtn">Plein écran</div>
+
         <!-- Conteneur de l'iframe -->
         <div class="iframe-container" id="iframeContainer">
             <iframe id="output" title="Aperçu"></iframe>
@@ -278,12 +311,35 @@
 
         dbRequest.onsuccess = function(event) {
             window[objectName].db = event.target.result;
-            loadSavedCodes();  // Charger les sauvegardes
+            loadCurrentCode();  // Charger la sauvegarde temporaire si elle existe
         };
 
         dbRequest.onerror = function() {
             console.error('Erreur lors de l\'ouverture de la base de données');
         };
+
+        // Sauvegarder en temps réel le contenu actuel
+        function saveCurrentCode() {
+            const code = window[objectName].editor.getValue().trim();
+            const transaction = window[objectName].db.transaction(['tempCode'], 'readwrite');
+            const store = transaction.objectStore('tempCode');
+            store.put({ id: 'current', code });
+        }
+
+        // Recharger le code temporaire au rechargement de la page
+        function loadCurrentCode() {
+            const transaction = window[objectName].db.transaction(['tempCode'], 'readonly');
+            const store = transaction.objectStore('tempCode');
+            const request = store.get('current');
+
+            request.onsuccess = function(event) {
+                const result = event.target.result;
+                if (result) {
+                    window[objectName].editor.setValue(result.code);
+                    updateOutput();
+                }
+            };
+        }
 
         // Sauvegarder manuellement le contenu actuel avec un titre
         function saveEditorContent() {
@@ -298,10 +354,8 @@
             const timestamp = new Date().toLocaleString();
             const newSave = { id: `save_${Date.now()}`, title: generatedTitle, code, timestamp };
 
-            store.add(newSave).onsuccess = function () {
-                limitSavedCodes(); // Appliquer la limite sur le nombre de sauvegardes
-                loadSavedCodes(); // Recharger les sauvegardes après avoir ajouté une nouvelle sauvegarde
-            };
+            store.add(newSave);
+            loadSavedCodes(); // Recharger les sauvegardes après avoir ajouté une nouvelle sauvegarde
         }
 
         // Charger et afficher les sauvegardes
@@ -314,21 +368,6 @@
                 let codes = event.target.result.filter(codeObj => codeObj.code.trim() !== "");
                 codes = codes.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Trier du plus récent au plus ancien
                 displaySavedCodes(codes);
-            };
-        }
-
-        // Limiter les sauvegardes à MAX_SAVES
-        function limitSavedCodes() {
-            const transaction = window[objectName].db.transaction(['tempCode'], 'readwrite');
-            const store = transaction.objectStore('tempCode');
-            const request = store.getAll();
-
-            request.onsuccess = function(event) {
-                const codes = event.target.result.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                if (codes.length > window[objectName].MAX_SAVES) {
-                    const excessSaves = codes.slice(window[objectName].MAX_SAVES);
-                    excessSaves.forEach(save => store.delete(save.id));
-                }
             };
         }
 
@@ -398,21 +437,7 @@
             saveEditorContent();  // Sauvegarde manuelle
         });
 
-        // Fermeture du volet lorsque l'on clique sur la div de l'iframe
-        document.getElementById('iframeContainer').addEventListener('click', () => {
-            if (window[objectName].sauvegardesDiv.classList.contains('visible')) {
-                window[objectName].sauvegardesDiv.classList.remove('visible');
-                window[objectName].sauvegardesDiv.style.left = '-240px';
-                window[objectName].toggleTab.classList.remove('hidden');  // Réafficher la languette
-            }
-        });
-
-        // Double-clic sur la div de l'iframe pour basculer en plein écran
-        document.getElementById('iframeContainer').addEventListener('dblclick', () => {
-            toggleFullScreen(document.getElementById('iframeContainer'));
-        });
-
-        // Clic à l'extérieur du volet pour le fermer
+        // Fermeture du volet lorsque l'on clique sur n'importe quel élément qui n'est pas le volet
         document.addEventListener('click', (event) => {
             const sauvegardesDiv = window[objectName].sauvegardesDiv;
             if (!sauvegardesDiv.contains(event.target) && !window[objectName].toggleTab.contains(event.target)) {
@@ -420,6 +445,24 @@
                 sauvegardesDiv.style.left = '-240px'; // Fermer le volet
                 window[objectName].toggleTab.classList.remove('hidden');  // Réafficher la languette
             }
+        });
+
+        // Fermeture du volet si on clique sur la div qui encapsule l'iframe
+        document.getElementById('iframeContainer').addEventListener('click', () => {
+            const sauvegardesDiv = window[objectName].sauvegardesDiv;
+            sauvegardesDiv.classList.remove('visible');
+            sauvegardesDiv.style.left = '-240px';
+            window[objectName].toggleTab.classList.remove('hidden');
+        });
+
+        // Clic sur la languette pour mettre l'éditeur en plein écran
+        document.getElementById('fullscreenEditorBtn').addEventListener('click', () => {
+            toggleFullScreen(window[objectName].editor.container);
+        });
+
+        // Clic sur la languette pour mettre la visualisation en plein écran
+        document.getElementById('fullscreenIframeBtn').addEventListener('click', () => {
+            toggleFullScreen(document.getElementById('iframeContainer'));
         });
 
         // Languette pour ouvrir le volet
@@ -443,13 +486,9 @@
             }
         }
 
-        // Double-clic pour mettre l'éditeur en plein écran ou revenir à l'état normal
-        window[objectName].editor.container.addEventListener('dblclick', () => {
-            toggleFullScreen(window[objectName].editor.container);
-        });
-
-        // Mise à jour de la sortie (iframe) lors de la frappe dans l'éditeur
+        // Sauvegarde en temps réel à chaque frappe dans l'éditeur
         window[objectName].editor.session.on('change', () => {
+            saveCurrentCode();  // Sauvegarder le contenu en cours à chaque interaction
             updateOutput();  // Mettre à jour la visualisation en temps réel
         });
 
