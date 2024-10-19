@@ -128,7 +128,7 @@
             width: 100%;
             padding: 10px;
             cursor: pointer;
-            margin-top: 10px;
+            margin-bottom: 10px;
             border-radius: 5px;
             text-align: center;
         }
@@ -182,9 +182,7 @@
     </div>
 
     <div class="tab" id="toggleTab">></div>
-    <div class="sauvegardes" id="sauvegardes">
-        <button class="delete-all-btn" id="deleteAll">Tout effacer</button>
-    </div>
+    <div class="sauvegardes" id="sauvegardes"></div>
 
     <!-- Inclure le script ACE Editor -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
@@ -203,8 +201,13 @@
         const toggleTab = document.getElementById('toggleTab');
         const titleInput = document.getElementById('titleInput');
         const saveBtn = document.getElementById('saveBtn'); // Bouton Sauvegarder
-        let deleteAllBtn = document.getElementById('deleteAll');
-        let currentSaveTitle = 'Sauvegarde en cours';
+        let deleteAllBtn;
+
+        // Restaurer le dernier contenu de l'éditeur au rechargement
+        document.addEventListener('DOMContentLoaded', () => {
+            loadLastSavedCode();
+            displayDeleteAllButton();
+        });
 
         // Événement du bouton Sauvegarder
         saveBtn.addEventListener('click', () => {
@@ -241,6 +244,22 @@
             console.error('Erreur lors de l\'ouverture de la base de données');
         };
 
+        // Restaurer le dernier code sauvegardé
+        function loadLastSavedCode() {
+            const transaction = db.transaction(['codes'], 'readonly');
+            const store = transaction.objectStore('codes');
+            const request = store.getAll();
+
+            request.onsuccess = function(event) {
+                const codes = event.target.result;
+                if (codes.length > 0) {
+                    const lastCode = codes[codes.length - 1].code; // Prendre le dernier
+                    editor.setValue(lastCode);
+                    updateOutput();
+                }
+            };
+        }
+
         // Sauvegarder le contenu de l'éditeur dans la base de données IndexedDB
         function saveEditorContent() {
             const code = editor.getValue().trim();
@@ -263,8 +282,28 @@
             };
         }
 
+        // Afficher le bouton "Tout effacer" toujours en première position
+        function displayDeleteAllButton() {
+            if (!document.getElementById('deleteAll')) {
+                const deleteAllButton = document.createElement('button');
+                deleteAllButton.classList.add('delete-all-btn');
+                deleteAllButton.id = 'deleteAll';
+                deleteAllButton.textContent = 'Tout effacer';
+                deleteAllButton.addEventListener('click', () => {
+                    const confirmDeleteAll = confirm('Voulez-vous vraiment supprimer toutes les sauvegardes ?');
+                    if (confirmDeleteAll) {
+                        deleteAllSavedCodes();
+                    }
+                });
+                sauvegardesDiv.insertBefore(deleteAllButton, sauvegardesDiv.firstChild);
+            }
+        }
+
         function displaySavedCodes(codes) {
-            sauvegardesDiv.innerHTML = '<button class="delete-all-btn" id="deleteAll">Tout effacer</button>';
+            // Vider les sauvegardes existantes sauf le bouton "Tout effacer"
+            sauvegardesDiv.innerHTML = '';
+            displayDeleteAllButton(); // S'assurer que le bouton reste en première position
+
             codes.slice(0, MAX_SAVES).forEach((codeObj, index) => {
                 const codeItem = document.createElement('div');
                 codeItem.classList.add('sauvegarde-item');
@@ -282,13 +321,6 @@
                     loadCodeInEditor(codeObj.code);
                 });
                 sauvegardesDiv.insertBefore(codeItem, sauvegardesDiv.firstChild); // Inverser l'ordre d'affichage
-            });
-            deleteAllBtn = document.getElementById('deleteAll');
-            deleteAllBtn.addEventListener('click', () => {
-                const confirmDeleteAll = confirm('Voulez-vous vraiment supprimer toutes les sauvegardes ?');
-                if (confirmDeleteAll) {
-                    deleteAllSavedCodes();
-                }
             });
         }
 
