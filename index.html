@@ -199,10 +199,6 @@
             margin-top: auto;
         }
 
-        .sauvegarde-item:first-child {
-            display: none; /* Masquer la première sauvegarde */
-        }
-
         .sauvegarde-item {
             padding: 10px;
             background-color: #FFCDD2;
@@ -213,6 +209,11 @@
             align-items: center;
             width: 100%;
             box-sizing: border-box;
+        }
+
+        /* Style pour la version en cours (première sauvegarde) */
+        .sauvegarde-item.current-version {
+            background-color: #BBDEFB; /* Bleu clair */
         }
 
         .sauvegarde-item button {
@@ -227,6 +228,10 @@
 
         .sauvegarde-item button:hover {
             background-color: #d32f2f;
+        }
+
+        .sauvegarde-item.current-version button {
+            display: none; /* Masquer le bouton de suppression pour la version en cours */
         }
 
         @media (min-width: 768px) {
@@ -392,8 +397,24 @@
             };
         }
 
+        // Afficher les sauvegardes
         function displaySavedCodes(codes) {
             window[randomObjectName].savesContainer.innerHTML = ''; 
+
+            // Afficher la version en cours (première sauvegarde)
+            const title = window[randomObjectName].titleInput.value.trim() || 'Version en cours';
+            const currentSaveItem = document.createElement('div');
+            currentSaveItem.classList.add('sauvegarde-item', 'current-version');
+            currentSaveItem.innerHTML = `
+                <span>${title}</span>
+                <button class="delete-btn">Supprimer</button>
+            `;
+            currentSaveItem.addEventListener('click', () => {
+                loadCurrentCode(); // Réafficher le code en cours dans l'éditeur
+            });
+            window[randomObjectName].savesContainer.appendChild(currentSaveItem);
+
+            // Afficher les autres sauvegardes
             codes.slice(0, window[randomObjectName].MAX_SAVES).forEach((codeObj) => {
                 const codeItem = document.createElement('div');
                 codeItem.classList.add('sauvegarde-item');
