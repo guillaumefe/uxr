@@ -108,7 +108,7 @@
         .sauvegardes {
             position: fixed;
             left: -240px; /* Position hors de l'écran quand il est fermé */
-            width: 200px;
+            width: 220px;
             height: 100%;
             background-color: #FFC107;
             transition: left 0.3s ease;
@@ -164,6 +164,7 @@
             justify-content: space-between;
             align-items: center;
             width: 100%;
+            box-sizing: border-box;
         }
 
         .sauvegarde-item button {
@@ -285,11 +286,18 @@
 
         // Sauvegarder le contenu de l'éditeur dans la base de données IndexedDB
         function saveEditorContent() {
+            const title = window[objectName].titleInput.value.trim();
             const code = window[objectName].editor.getValue().trim();
+
+            if (!title) {
+                alert("Le titre ne peut pas être vide.");
+                return;
+            }
+
             const transaction = window[objectName].db.transaction(['codes'], 'readwrite');
             const store = transaction.objectStore('codes');
             const timestamp = new Date().toLocaleString();
-            store.add({ code, timestamp });
+            store.add({ title, code, timestamp });
             loadSavedCodes(); // Recharger les sauvegardes
         }
 
@@ -331,7 +339,7 @@
                 const codeItem = document.createElement('div');
                 codeItem.classList.add('sauvegarde-item');
                 codeItem.innerHTML = `
-                    <span>Sauvegarde ${index + 1} (${codeObj.timestamp})</span>
+                    <span>${codeObj.title} (${codeObj.timestamp})</span>
                     <button class="delete-btn">Supprimer</button>
                 `;
                 codeItem.querySelector('.delete-btn').addEventListener('click', () => {
@@ -358,7 +366,7 @@
             store.openCursor().onsuccess = function(event) {
                 const cursor = event.target.result;
                 if (cursor) {
-                    if (cursor.value.code === codeObj.code && cursor.value.timestamp === codeObj.timestamp) {
+                    if (cursor.value.code === codeObj.code && cursor.value.title === codeObj.title && cursor.value.timestamp === codeObj.timestamp) {
                         cursor.delete();
                         loadSavedCodes();
                     }
