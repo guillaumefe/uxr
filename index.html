@@ -287,6 +287,7 @@
             const existingItems = document.querySelectorAll('.sauvegarde-item');
             existingItems.forEach(item => item.remove());
 
+            // Trier les codes dans l'ordre décroissant (la plus récente en premier)
             codes.slice(0, appState.MAX_SAVES).forEach((codeObj, index) => {
                 const codeItem = document.createElement('div');
                 codeItem.classList.add('sauvegarde-item');
@@ -303,7 +304,7 @@
                 codeItem.addEventListener('click', () => {
                     loadCodeInEditor(codeObj.code);
                 });
-                appState.sauvegardesDiv.appendChild(codeItem);  // Ajouter les sauvegardes après le bouton "Tout effacer"
+                appState.sauvegardesDiv.insertBefore(codeItem, appState.sauvegardesDiv.firstChild);  // Ajouter les sauvegardes après le bouton "Tout effacer"
             });
         }
 
