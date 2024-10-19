@@ -101,19 +101,20 @@
             background-color: #BBDEFB;
             position: relative;
             cursor: pointer;
+            margin-bottom: 20px;
         }
 
-        /* Languette au-dessus de la visualisation, alignée à droite et collée */
+        /* Languette sous la visualisation, alignée à droite et collée */
         .toggle-fullscreen-iframe {
             cursor: pointer;
             background-color: #333;
             color: white;
             padding: 5px;
             text-align: center;
-            border-radius: 5px 5px 0 0;
+            border-radius: 0 0 5px 5px;
             font-size: 14px;
             position: absolute;
-            top: -20px;
+            bottom: -20px;
             right: 0;
         }
 
@@ -210,6 +211,10 @@
             box-sizing: border-box;
         }
 
+        .sauvegarde-item:first-child {
+            display: none; /* Masquer la première sauvegarde */
+        }
+
         .sauvegarde-item button {
             background-color: #e53935;
             color: white;
@@ -249,7 +254,7 @@
             <iframe id="output" title="Aperçu"></iframe>
         </div>
 
-        <!-- Languette au-dessus du champ de visualisation pour le mettre en plein écran -->
+        <!-- Languette sous la visualisation pour la mettre en plein écran -->
         <div class="toggle-fullscreen-iframe" id="fullscreenIframeBtn">Plein écran</div>
     </div>
 
@@ -323,15 +328,17 @@
             console.error('Erreur lors de l\'ouverture de la base de données');
         };
 
-        // Sauvegarder en temps réel le contenu actuel
+        // Sauvegarder en temps réel le contenu actuel et le titre
         function saveCurrentCode() {
             const code = window[objectName].editor.getValue().trim();
+            const title = window[objectName].titleInput.value.trim();
             const transaction = window[objectName].db.transaction(['tempCode'], 'readwrite');
             const store = transaction.objectStore('tempCode');
-            store.put({ id: 'current', code });
+            store.put({ id: 'current', code, title });
+            localStorage.setItem('title', title); // Sauvegarder le titre dans localStorage
         }
 
-        // Recharger le code temporaire au rechargement de la page
+        // Recharger le code temporaire et le titre au rechargement de la page
         function loadCurrentCode() {
             const transaction = window[objectName].db.transaction(['tempCode'], 'readonly');
             const store = transaction.objectStore('tempCode');
@@ -341,6 +348,7 @@
                 const result = event.target.result;
                 if (result) {
                     window[objectName].editor.setValue(result.code);
+                    window[objectName].titleInput.value = localStorage.getItem('title') || result.title || '';
                     updateOutput();
                 }
             };
