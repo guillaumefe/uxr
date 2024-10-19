@@ -100,6 +100,10 @@
             z-index: 1001;
         }
 
+        .tab.hidden {
+            display: none;
+        }
+
         .tab:hover {
             background-color: #555;
         }
@@ -263,20 +267,12 @@
 
         dbRequest.onsuccess = function(event) {
             window[objectName].db = event.target.result;
-            loadCurrentCode();  // Charger la sauvegarde temporaire si elle existe
+            loadSavedCodes();  // Charger les sauvegardes
         };
 
         dbRequest.onerror = function() {
             console.error('Erreur lors de l\'ouverture de la base de données');
         };
-
-        // Sauvegarder le code actuel à chaque frappe
-        function saveCurrentCode() {
-            const code = window[objectName].editor.getValue().trim();
-            const transaction = window[objectName].db.transaction(['tempCode'], 'readwrite');
-            const store = transaction.objectStore('tempCode');
-            store.put({ id: 'current', code });
-        }
 
         // Sauvegarder manuellement le contenu actuel avec un titre
         function saveEditorContent() {
@@ -292,22 +288,7 @@
             const newSave = { id: `save_${Date.now()}`, title: generatedTitle, code, timestamp };
 
             store.add(newSave);
-            loadSavedCodes(); // Recharger les sauvegardes
-        }
-
-        // Recharger le code temporaire au rechargement de la page
-        function loadCurrentCode() {
-            const transaction = window[objectName].db.transaction(['tempCode'], 'readonly');
-            const store = transaction.objectStore('tempCode');
-            const request = store.get('current');
-
-            request.onsuccess = function(event) {
-                const result = event.target.result;
-                if (result) {
-                    window[objectName].editor.setValue(result.code);
-                    updateOutput();
-                }
-            };
+            loadSavedCodes(); // Recharger les sauvegardes après avoir ajouté une nouvelle sauvegarde
         }
 
         // Charger et afficher les sauvegardes
@@ -327,7 +308,7 @@
             // Vider les sauvegardes existantes
             window[objectName].savesContainer.innerHTML = ''; 
 
-            // Trier les codes dans l'ordre décroissant (la plus récente en premier)
+            // Ajouter les sauvegardes dans l'ordre décroissant (la plus récente en premier)
             codes.slice(0, window[objectName].MAX_SAVES).forEach((codeObj, index) => {
                 const codeItem = document.createElement('div');
                 codeItem.classList.add('sauvegarde-item');
@@ -395,6 +376,7 @@
             if (!sauvegardesDiv.contains(event.target) && !window[objectName].toggleTab.contains(event.target)) {
                 sauvegardesDiv.classList.remove('visible');
                 sauvegardesDiv.style.left = '-240px'; // Fermer le volet
+                window[objectName].toggleTab.classList.remove('hidden');  // Réafficher la languette
             }
         });
 
@@ -403,6 +385,11 @@
             const sauvegardesDiv = window[objectName].sauvegardesDiv;
             sauvegardesDiv.classList.toggle('visible');
             sauvegardesDiv.style.left = sauvegardesDiv.classList.contains('visible') ? '0' : '-240px';
+
+            // Masquer la languette quand le volet est ouvert
+            if (sauvegardesDiv.classList.contains('visible')) {
+                window[objectName].toggleTab.classList.add('hidden');
+            }
         });
 
         // Fonction de toggle plein écran
@@ -424,10 +411,9 @@
             toggleFullScreen(window[objectName].output);
         });
 
-        // Mise à jour de la sortie (iframe)
+        // Mise à jour de la sortie (iframe) lors de la frappe dans l'éditeur
         window[objectName].editor.session.on('change', () => {
-            saveCurrentCode();  // Sauvegarder à chaque frappe
-            updateOutput();     // Mettre à jour la visualisation en temps réel
+            updateOutput();  // Mettre à jour la visualisation en temps réel
         });
 
         function updateOutput() {
