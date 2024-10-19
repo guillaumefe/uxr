@@ -322,7 +322,9 @@
             loadSavedCodes();
         };
 
-        dbRequest.onerror = function() {};
+        dbRequest.onerror = function() {
+            console.error('Erreur lors de l\'ouverture de la base de données');
+        };
 
         function saveCurrentCode() {
             const code = window[randomObjectName].editor.getValue().trim();
@@ -387,7 +389,10 @@
             const title = window[randomObjectName].titleInput.value.trim() || 'Version en cours';
             const currentSaveItem = document.createElement('div');
             currentSaveItem.classList.add('sauvegarde-item', 'current-version');
-            currentSaveItem.innerHTML = `<span>${title}</span><button class="delete-btn">Supprimer</button>`;
+            currentSaveItem.innerHTML = `
+                <span>${title}</span>
+                <button class="delete-btn">Supprimer</button>
+            `;
             currentSaveItem.addEventListener('click', () => {
                 loadCurrentCode();
             });
@@ -396,7 +401,10 @@
             codes.slice(0, window[randomObjectName].MAX_SAVES).forEach((codeObj, index) => {
                 const codeItem = document.createElement('div');
                 codeItem.classList.add('sauvegarde-item');
-                codeItem.innerHTML = `<span>${codeObj.title} (${codeObj.timestamp})</span><button class="delete-btn">Supprimer</button>`;
+                codeItem.innerHTML = `
+                    <span>${codeObj.title} (${codeObj.timestamp})</span>
+                    <button class="delete-btn">Supprimer</button>
+                `;
                 if (index === 0) codeItem.classList.add('hidden');
                 codeItem.querySelector('.delete-btn').addEventListener('click', () => {
                     const confirmDelete = confirm('Voulez-vous vraiment supprimer cette sauvegarde ?');
