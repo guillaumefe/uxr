@@ -130,6 +130,7 @@
             cursor: pointer;
             margin-top: 10px;
             border-radius: 5px;
+            text-align: center;
         }
 
         .delete-all-btn:hover {
@@ -146,20 +147,17 @@
             align-items: center;
         }
 
-        .sauvegarde-item:hover {
-            background-color: #EF9A9A;
-        }
-
-        .delete-btn {
+        .sauvegarde-item button {
             background-color: #e53935;
             color: white;
             border: none;
-            padding: 5px;
+            padding: 10px;
             border-radius: 5px;
-            cursor: pointer;
+            width: 100%;
+            text-align: center;
         }
 
-        .delete-btn:hover {
+        .sauvegarde-item button:hover {
             background-color: #d32f2f;
         }
 
@@ -260,7 +258,7 @@
 
             request.onsuccess = function(event) {
                 let codes = event.target.result.filter(codeObj => codeObj.code.trim() !== "");
-                codes = codes.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                codes = codes.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Trier du plus récent au plus ancien
                 displaySavedCodes(codes);
             };
         }
@@ -283,7 +281,7 @@
                 codeItem.addEventListener('click', () => {
                     loadCodeInEditor(codeObj.code);
                 });
-                sauvegardesDiv.appendChild(codeItem);
+                sauvegardesDiv.insertBefore(codeItem, sauvegardesDiv.firstChild); // Inverser l'ordre d'affichage
             });
             deleteAllBtn = document.getElementById('deleteAll');
             deleteAllBtn.addEventListener('click', () => {
