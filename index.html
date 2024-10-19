@@ -284,13 +284,13 @@
             };
         }
 
-        // Sauvegarder le contenu de l'éditeur dans la base de données IndexedDB
+        // Sauvegarde automatique à chaque frappe
         function saveEditorContent() {
             const title = window[objectName].titleInput.value.trim();
             const code = window[objectName].editor.getValue().trim();
 
             if (!title) {
-                alert("Le titre ne peut pas être vide.");
+                console.log("Le titre est manquant. Aucune sauvegarde effectuée.");
                 return;
             }
 
@@ -300,6 +300,11 @@
             store.add({ title, code, timestamp });
             loadSavedCodes(); // Recharger les sauvegardes
         }
+
+        // Sauvegarde manuelle à la demande
+        window[objectName].saveBtn.addEventListener('click', () => {
+            saveEditorContent();
+        });
 
         function loadSavedCodes() {
             const transaction = window[objectName].db.transaction(['codes'], 'readonly');
@@ -383,11 +388,6 @@
             };
         }
 
-        // Événement du bouton Sauvegarder
-        window[objectName].saveBtn.addEventListener('click', () => {
-            saveEditorContent(); // Sauvegarde manuelle, uniquement quand le bouton est cliqué
-        });
-
         // Toggle pour le menu des sauvegardes
         window[objectName].toggleTab.addEventListener('click', () => {
             const sauvegardesDiv = window[objectName].sauvegardesDiv;
@@ -424,7 +424,10 @@
         });
 
         // Mise à jour du contenu de la visualisation en temps réel
-        window[objectName].editor.session.on('change', updateOutput);
+        window[objectName].editor.session.on('change', () => {
+            updateOutput(); // Mettre à jour la sortie
+            saveEditorContent(); // Sauvegarder à chaque frappe
+        });
 
         function updateOutput() {
             if (!window[objectName].output || !window[objectName].output.contentWindow || !window[objectName].output.contentWindow.document) {
@@ -435,9 +438,6 @@
             window[objectName].output.contentWindow.document.write(code);
             window[objectName].output.contentWindow.document.close();
         }
-
-        // Suppression de la sauvegarde automatique lors du rechargement
-        // Plus aucune sauvegarde automatique avant le déchargement de la page
     </script>
 </body>
 </html>
