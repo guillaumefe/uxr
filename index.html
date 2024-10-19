@@ -436,9 +436,8 @@
             window[objectName].output.contentWindow.document.close();
         }
 
-        window.addEventListener('beforeunload', () => {
-            saveEditorContent();
-        });
+        // Suppression de la sauvegarde automatique lors du rechargement
+        // Plus aucune sauvegarde automatique avant le déchargement de la page
     </script>
 </body>
 </html>
