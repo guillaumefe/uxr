@@ -333,7 +333,7 @@
 
         // Événement du bouton Sauvegarder
         saveBtn.addEventListener('click', () => {
-            saveEditorContent();
+            saveEditorContent(); // Sauvegarde manuelle, uniquement quand le bouton est cliqué
         });
 
         // Toggle pour le menu des sauvegardes
@@ -380,10 +380,6 @@
             output.contentWindow.document.write(code);
             output.contentWindow.document.close();
         }
-
-        window.addEventListener('beforeunload', () => {
-            saveEditorContent();
-        });
     </script>
 </body>
 </html>
