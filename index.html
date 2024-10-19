@@ -75,6 +75,7 @@
             box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.1);
         }
 
+        /* Languette sous l'éditeur, alignée à gauche et collée */
         .toggle-fullscreen-editor {
             cursor: pointer;
             background-color: #333;
@@ -83,8 +84,9 @@
             text-align: center;
             border-radius: 0 0 5px 5px;
             font-size: 14px;
-            width: 100px;
-            margin: 10px auto;
+            position: absolute;
+            bottom: -20px;
+            left: 0;
         }
 
         .iframe-container {
@@ -97,6 +99,7 @@
             cursor: pointer;
         }
 
+        /* Languette au-dessus de la visualisation, alignée à droite et collée */
         .toggle-fullscreen-iframe {
             cursor: pointer;
             background-color: #333;
@@ -105,8 +108,9 @@
             text-align: center;
             border-radius: 5px 5px 0 0;
             font-size: 14px;
-            width: 100px;
-            margin: 10px auto;
+            position: absolute;
+            top: -20px;
+            right: 0;
         }
 
         .iframe-container iframe {
@@ -236,13 +240,13 @@
         <!-- Languette sous le champ de code pour le mettre en plein écran -->
         <div class="toggle-fullscreen-editor" id="fullscreenEditorBtn">Plein écran</div>
 
-        <!-- Languette au-dessus de l'iframe pour la mettre en plein écran -->
-        <div class="toggle-fullscreen-iframe" id="fullscreenIframeBtn">Plein écran</div>
-
         <!-- Conteneur de l'iframe -->
         <div class="iframe-container" id="iframeContainer">
             <iframe id="output" title="Aperçu"></iframe>
         </div>
+
+        <!-- Languette au-dessus du champ de visualisation pour le mettre en plein écran -->
+        <div class="toggle-fullscreen-iframe" id="fullscreenIframeBtn">Plein écran</div>
     </div>
 
     <!-- Languette pour ouvrir le volet -->
@@ -267,8 +271,11 @@
         }
 
         // Utiliser un nom d'objet aléatoire pour éviter les doublons
-        let objectName = localStorage.getItem('objectName') || generateRandomName();
-        localStorage.setItem('objectName', objectName);
+        let objectName = localStorage.getItem('objectName');
+        if (!objectName) {
+            objectName = generateRandomName();
+            localStorage.setItem('objectName', objectName);
+        }
 
         // Assigner cet objet au window avec le nom aléatoire
         window[objectName] = {
@@ -289,7 +296,7 @@
         window[objectName].editor = ace.edit("editor");
         window[objectName].editor.setTheme("ace/theme/monokai");
         window[objectName].editor.session.setMode("ace/mode/html");
-        window[objectName].editor.focus();
+        window[objectName].editor.focus(); // Focus automatique sur l'éditeur
 
         window[objectName].output = document.getElementById('output');
 
@@ -305,6 +312,7 @@
         dbRequest.onsuccess = function(event) {
             window[objectName].db = event.target.result;
             loadCurrentCode();
+            loadSavedCodes();
         };
 
         dbRequest.onerror = function() {
