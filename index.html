@@ -188,7 +188,6 @@
             background-color: #c62828;
         }
 
-        /* Conteneur séparé pour la version en cours */
         .current-version-container {
             margin-bottom: 10px;
         }
@@ -275,7 +274,6 @@
             <button class="delete-all-btn" id="deleteAll">Tout effacer</button>
         </div>
         
-        <!-- Conteneur pour la version en cours -->
         <div class="current-version-container" id="currentVersionContainer"></div>
         
         <div class="saves-container" id="savesContainer"></div>
@@ -313,7 +311,7 @@
         window[objectName].editor = ace.edit("editor");
         window[objectName].editor.setTheme("ace/theme/monokai");
         window[objectName].editor.session.setMode("ace/mode/html");
-        window[objectName].editor.focus(); 
+        window[objectName].editor.focus();
 
         window[objectName].output = document.getElementById('output');
 
@@ -342,7 +340,7 @@
             const transaction = window[objectName].db.transaction(['tempCode'], 'readwrite');
             const store = transaction.objectStore('tempCode');
             store.put({ id: 'current', code, title });
-            localStorage.setItem('title', title); 
+            localStorage.setItem('title', title);
         }
 
         function loadCurrentCode() {
@@ -369,7 +367,7 @@
             }
 
             if (!code) {
-                return; 
+                return;
             }
 
             const transaction = window[objectName].db.transaction(['tempCode'], 'readwrite');
@@ -378,7 +376,7 @@
             const newSave = { id: `save_${Date.now()}`, title, code, timestamp };
 
             store.add(newSave);
-            loadSavedCodes(); 
+            loadSavedCodes();
         }
 
         function loadSavedCodes() {
@@ -388,21 +386,21 @@
 
             request.onsuccess = function(event) {
                 let codes = event.target.result.filter(codeObj => codeObj.code.trim() !== "");
-                codes = codes.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); 
+                codes = codes.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                 displaySavedCodes(codes);
             };
         }
 
         function displaySavedCodes(codes) {
-            window[objectName].savesContainer.innerHTML = ''; 
-            window[objectName].currentVersionContainer.innerHTML = ''; 
+            window[objectName].savesContainer.innerHTML = '';
+            window[objectName].currentVersionContainer.innerHTML = '';
 
             const title = window[objectName].titleInput.value.trim() || 'Version en cours';
             const currentSaveItem = document.createElement('div');
             currentSaveItem.classList.add('sauvegarde-item', 'current-version');
             currentSaveItem.innerHTML = `<span>${title}</span>`;
             currentSaveItem.addEventListener('click', () => {
-                loadCurrentCode(); 
+                loadCurrentCode();
             });
             window[objectName].currentVersionContainer.appendChild(currentSaveItem);
 
@@ -507,6 +505,11 @@
         window[objectName].editor.session.on('change', () => {
             saveCurrentCode();
             updateOutput();
+        });
+
+        window[objectName].titleInput.addEventListener('input', () => {
+            saveCurrentCode();
+            loadSavedCodes();
         });
 
         function updateOutput() {
