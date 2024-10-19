@@ -16,7 +16,6 @@
             font-family: 'Arial', sans-serif;
         }
 
-        /* Ajout de margin pour séparer le titre du haut de la page sur mobile */
         .editor-container {
             display: flex;
             flex-direction: column;
@@ -30,7 +29,7 @@
             padding: 20px;
             background-color: #FFEB3B;
             position: relative;
-            margin-top: 20px; /* Ajout du margin-top */
+            margin-top: 20px;
         }
 
         .title-save-container {
@@ -41,7 +40,6 @@
             margin-top: 20px;
         }
 
-        /* Correction : Couleur du texte dans le champ titre pour le rendre visible */
         .save-title-input {
             width: 80%;
             padding: 15px;
@@ -50,7 +48,7 @@
             border: 2px solid #FF9800;
             border-radius: 5px;
             background-color: #fff59d;
-            color: #000; /* Définir explicitement la couleur du texte */
+            color: #000;
             box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.1);
             outline: none;
         }
@@ -79,7 +77,6 @@
             box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.1);
         }
 
-        /* Languette sous l'éditeur, alignée à gauche et collée */
         .toggle-fullscreen-editor {
             cursor: pointer;
             background-color: #333;
@@ -104,7 +101,6 @@
             margin-bottom: 20px;
         }
 
-        /* Languette sous la visualisation, alignée à droite et collée */
         .toggle-fullscreen-iframe {
             cursor: pointer;
             background-color: #333;
@@ -149,13 +145,12 @@
             background-color: #555;
         }
 
-        /* Le volet doit occuper toute la hauteur sans margin */
         .sauvegardes {
             position: fixed;
             left: -240px;
-            top: 0; /* Pas de margin avec le haut de l'écran */
+            top: 0;
             width: 220px;
-            height: 100vh; /* Occuper toute la hauteur de la page */
+            height: 100vh;
             background-color: #FFC107;
             transition: left 0.3s ease;
             box-shadow: 2px 0 5px rgba(0,0,0,0.2);
@@ -195,7 +190,7 @@
 
         .saves-container {
             display: flex;
-            flex-direction: column-reverse; /* Les sauvegardes les plus récentes en haut */
+            flex-direction: column-reverse;
             justify-content: flex-start;
             align-items: flex-start;
             margin-top: auto;
@@ -213,14 +208,12 @@
             box-sizing: border-box;
         }
 
-        /* Masquer la première sauvegarde si elle n'est pas la version en cours */
         .sauvegarde-item.hidden {
             display: none;
         }
 
-        /* Style pour la version en cours (première sauvegarde) */
         .sauvegarde-item.current-version {
-            background-color: #BBDEFB; /* Bleu clair */
+            background-color: #BBDEFB;
         }
 
         .sauvegarde-item button {
@@ -238,7 +231,7 @@
         }
 
         .sauvegarde-item.current-version button {
-            display: none; /* Masquer le bouton de suppression pour la version en cours */
+            display: none;
         }
 
         @media (min-width: 768px) {
@@ -247,7 +240,7 @@
             }
 
             .editor-container {
-                margin-top: 0; /* Pas de margin-top sur mobile */
+                margin-top: 0;
             }
         }
     </style>
@@ -259,25 +252,19 @@
             <button class="save-btn" id="saveBtn">Sauvegarder</button>
         </div>
         
-        <!-- ACE Editor -->
         <div id="editor"></div>
 
-        <!-- Languette sous le champ de code pour le mettre en plein écran -->
         <div class="toggle-fullscreen-editor" id="fullscreenEditorBtn">Plein écran</div>
 
-        <!-- Conteneur de l'iframe -->
         <div class="iframe-container" id="iframeContainer">
             <iframe id="output" title="Aperçu"></iframe>
         </div>
 
-        <!-- Languette sous la visualisation pour la mettre en plein écran -->
         <div class="toggle-fullscreen-iframe" id="fullscreenIframeBtn">Plein écran</div>
     </div>
 
-    <!-- Languette pour ouvrir le volet -->
     <div class="tab" id="toggleTab">></div>
 
-    <!-- Volet avec les sauvegardes -->
     <div class="sauvegardes" id="sauvegardes">
         <div class="delete-all-container" id="deleteAllContainer">
             <button class="delete-all-btn" id="deleteAll">Tout effacer</button>
@@ -285,24 +272,20 @@
         <div class="saves-container" id="savesContainer"></div>
     </div>
 
-    <!-- Inclure le script ACE Editor -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
 
     <script>
-        // Fonction pour générer un nom aléatoire
         function generateRandomName(length = 8) {
             const letters = 'abcdefghijklmnopqrstuvwxyz';
             return Array.from({ length }, () => letters[Math.floor(Math.random() * letters.length)]).join('');
         }
 
-        // Utiliser un nom d'objet aléatoire pour éviter les doublons
         let randomObjectName = localStorage.getItem('randomObjectName');
         if (!randomObjectName) {
             randomObjectName = generateRandomName();
             localStorage.setItem('randomObjectName', randomObjectName);
         }
 
-        // Assigner cet objet au window avec le nom aléatoire
         window[randomObjectName] = {
             MAX_SAVES: 10,
             editor: null,
@@ -317,11 +300,10 @@
             deleteAllBtn: document.getElementById('deleteAll'),
         };
 
-        // Configuration ACE Editor
         window[randomObjectName].editor = ace.edit("editor");
         window[randomObjectName].editor.setTheme("ace/theme/monokai");
         window[randomObjectName].editor.session.setMode("ace/mode/html");
-        window[randomObjectName].editor.focus(); // Focus automatique sur l'éditeur
+        window[randomObjectName].editor.focus();
 
         window[randomObjectName].output = document.getElementById('output');
 
@@ -340,21 +322,17 @@
             loadSavedCodes();
         };
 
-        dbRequest.onerror = function() {
-            console.error('Erreur lors de l\'ouverture de la base de données');
-        };
+        dbRequest.onerror = function() {};
 
-        // Sauvegarder en temps réel le contenu actuel et le titre
         function saveCurrentCode() {
             const code = window[randomObjectName].editor.getValue().trim();
             const title = window[randomObjectName].titleInput.value.trim();
             const transaction = window[randomObjectName].db.transaction(['tempCode'], 'readwrite');
             const store = transaction.objectStore('tempCode');
             store.put({ id: 'current', code, title });
-            localStorage.setItem('title', title); // Sauvegarder le titre dans localStorage
+            localStorage.setItem('title', title);
         }
 
-        // Recharger le code temporaire et le titre au rechargement de la page
         function loadCurrentCode() {
             const transaction = window[randomObjectName].db.transaction(['tempCode'], 'readonly');
             const store = transaction.objectStore('tempCode');
@@ -370,19 +348,16 @@
             };
         }
 
-        // Sauvegarder manuellement le contenu actuel avec un titre
         function saveEditorContent() {
             let title = window[randomObjectName].titleInput.value.trim();
             const code = window[randomObjectName].editor.getValue().trim();
 
-            // Si le titre est vide, utiliser un nom générique
             if (!title) {
                 title = `Sauvegarde sans titre`;
             }
 
-            // Vérifier que le code n'est pas vide
             if (!code) {
-                return; // Pas d'alerte, juste ignorer si le contenu est vide
+                return;
             }
 
             const transaction = window[randomObjectName].db.transaction(['tempCode'], 'readwrite');
@@ -391,10 +366,9 @@
             const newSave = { id: `save_${Date.now()}`, title, code, timestamp };
 
             store.add(newSave);
-            loadSavedCodes(); // Recharger les sauvegardes après avoir ajouté une nouvelle sauvegarde
+            loadSavedCodes();
         }
 
-        // Charger et afficher les sauvegardes
         function loadSavedCodes() {
             const transaction = window[randomObjectName].db.transaction(['tempCode'], 'readonly');
             const store = transaction.objectStore('tempCode');
@@ -402,37 +376,28 @@
 
             request.onsuccess = function(event) {
                 let codes = event.target.result.filter(codeObj => codeObj.code.trim() !== "");
-                codes = codes.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Trier du plus récent au plus ancien
+                codes = codes.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                 displaySavedCodes(codes);
             };
         }
 
-        // Afficher les sauvegardes
         function displaySavedCodes(codes) {
             window[randomObjectName].savesContainer.innerHTML = ''; 
 
-            // Afficher la version en cours (première sauvegarde)
             const title = window[randomObjectName].titleInput.value.trim() || 'Version en cours';
             const currentSaveItem = document.createElement('div');
             currentSaveItem.classList.add('sauvegarde-item', 'current-version');
-            currentSaveItem.innerHTML = `
-                <span>${title}</span>
-                <button class="delete-btn">Supprimer</button>
-            `;
+            currentSaveItem.innerHTML = `<span>${title}</span><button class="delete-btn">Supprimer</button>`;
             currentSaveItem.addEventListener('click', () => {
-                loadCurrentCode(); // Réafficher le code en cours dans l'éditeur
+                loadCurrentCode();
             });
             window[randomObjectName].savesContainer.prepend(currentSaveItem);
 
-            // Afficher les autres sauvegardes, masquer la première si non "Version en cours"
             codes.slice(0, window[randomObjectName].MAX_SAVES).forEach((codeObj, index) => {
                 const codeItem = document.createElement('div');
                 codeItem.classList.add('sauvegarde-item');
-                codeItem.innerHTML = `
-                    <span>${codeObj.title} (${codeObj.timestamp})</span>
-                    <button class="delete-btn">Supprimer</button>
-                `;
-                if (index === 0) codeItem.classList.add('hidden'); // Masquer la première sauvegarde si non "Version en cours"
+                codeItem.innerHTML = `<span>${codeObj.title} (${codeObj.timestamp})</span><button class="delete-btn">Supprimer</button>`;
+                if (index === 0) codeItem.classList.add('hidden');
                 codeItem.querySelector('.delete-btn').addEventListener('click', () => {
                     const confirmDelete = confirm('Voulez-vous vraiment supprimer cette sauvegarde ?');
                     if (confirmDelete) {
