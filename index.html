@@ -104,8 +104,7 @@
 
         .sauvegardes {
             position: fixed;
-            left: -200px;
-            top: 0;
+            left: 0;
             width: 200px;
             height: 100%;
             background-color: #FFC107;
@@ -115,10 +114,19 @@
             z-index: 1000;
             padding: 10px;
             border-right: 5px solid #FF5722;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
         .sauvegardes.visible {
             left: 0;
+        }
+
+        .delete-all-container {
+            display: flex;
+            justify-content: flex-start;
+            padding-bottom: 10px;
         }
 
         .delete-all-btn {
@@ -128,13 +136,20 @@
             width: 100%;
             padding: 10px;
             cursor: pointer;
-            margin-bottom: 10px;
             border-radius: 5px;
             text-align: center;
         }
 
         .delete-all-btn:hover {
             background-color: #c62828;
+        }
+
+        .saves-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: flex-start;
+            margin-top: auto;
         }
 
         .sauvegarde-item {
@@ -145,6 +160,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            width: 100%;
         }
 
         .sauvegarde-item button {
@@ -182,7 +198,10 @@
     </div>
 
     <div class="tab" id="toggleTab">></div>
-    <div class="sauvegardes" id="sauvegardes"></div>
+    <div class="sauvegardes" id="sauvegardes">
+        <div class="delete-all-container" id="deleteAllContainer"></div>
+        <div class="saves-container" id="savesContainer"></div>
+    </div>
 
     <!-- Inclure le script ACE Editor -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
@@ -208,6 +227,8 @@
             output: null,
             db: null,
             sauvegardesDiv: document.getElementById('sauvegardes'),
+            deleteAllContainer: document.getElementById('deleteAllContainer'),
+            savesContainer: document.getElementById('savesContainer'),
             toggleTab: document.getElementById('toggleTab'),
             titleInput: document.getElementById('titleInput'),
             saveBtn: document.getElementById('saveBtn'),
@@ -278,9 +299,9 @@
             };
         }
 
-        // Afficher le bouton "Tout effacer" toujours en première position
+        // Afficher le bouton "Tout effacer" dans le conteneur en haut
         function displayDeleteAllButton() {
-            window[objectName].sauvegardesDiv.innerHTML = ''; // Réinitialiser la liste
+            window[objectName].deleteAllContainer.innerHTML = ''; // Réinitialiser la liste
             const deleteAllButton = document.createElement('button');
             deleteAllButton.classList.add('delete-all-btn');
             deleteAllButton.id = 'deleteAll';
@@ -291,14 +312,13 @@
                     deleteAllSavedCodes();
                 }
             });
-            window[objectName].sauvegardesDiv.appendChild(deleteAllButton);  // Ajouter le bouton rouge en haut
+            window[objectName].deleteAllContainer.appendChild(deleteAllButton);  // Ajouter le bouton rouge dans le conteneur
             window[objectName].deleteAllBtn = deleteAllButton;
         }
 
         function displaySavedCodes(codes) {
-            // Vider les sauvegardes existantes sauf le bouton "Tout effacer"
-            const existingItems = document.querySelectorAll('.sauvegarde-item');
-            existingItems.forEach(item => item.remove());
+            // Vider les sauvegardes existantes
+            window[objectName].savesContainer.innerHTML = ''; 
 
             // Trier les codes dans l'ordre décroissant (la plus récente en premier)
             codes.slice(0, window[objectName].MAX_SAVES).forEach((codeObj, index) => {
@@ -317,7 +337,7 @@
                 codeItem.addEventListener('click', () => {
                     loadCodeInEditor(codeObj.code);
                 });
-                window[objectName].sauvegardesDiv.insertBefore(codeItem, window[objectName].sauvegardesDiv.firstChild);  // Ajouter les sauvegardes après le bouton "Tout effacer"
+                window[objectName].savesContainer.appendChild(codeItem);  // Ajouter les sauvegardes dans le conteneur en bas
             });
         }
 
