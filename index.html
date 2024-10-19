@@ -188,6 +188,11 @@
             background-color: #c62828;
         }
 
+        /* Conteneur séparé pour la version en cours */
+        .current-version-container {
+            margin-bottom: 10px;
+        }
+
         .saves-container {
             display: flex;
             flex-direction: column-reverse;
@@ -269,6 +274,10 @@
         <div class="delete-all-container" id="deleteAllContainer">
             <button class="delete-all-btn" id="deleteAll">Tout effacer</button>
         </div>
+        
+        <!-- Conteneur pour la version en cours -->
+        <div class="current-version-container" id="currentVersionContainer"></div>
+        
         <div class="saves-container" id="savesContainer"></div>
     </div>
 
@@ -294,6 +303,7 @@
             sauvegardesDiv: document.getElementById('sauvegardes'),
             deleteAllContainer: document.getElementById('deleteAllContainer'),
             savesContainer: document.getElementById('savesContainer'),
+            currentVersionContainer: document.getElementById('currentVersionContainer'),
             toggleTab: document.getElementById('toggleTab'),
             titleInput: document.getElementById('titleInput'),
             saveBtn: document.getElementById('saveBtn'),
@@ -303,7 +313,7 @@
         window[objectName].editor = ace.edit("editor");
         window[objectName].editor.setTheme("ace/theme/monokai");
         window[objectName].editor.session.setMode("ace/mode/html");
-        window[objectName].editor.focus();
+        window[objectName].editor.focus(); 
 
         window[objectName].output = document.getElementById('output');
 
@@ -322,13 +332,17 @@
             loadSavedCodes();
         };
 
+        dbRequest.onerror = function() {
+            console.error('Erreur lors de l\'ouverture de la base de données');
+        };
+
         function saveCurrentCode() {
             const code = window[objectName].editor.getValue().trim();
             const title = window[objectName].titleInput.value.trim();
             const transaction = window[objectName].db.transaction(['tempCode'], 'readwrite');
             const store = transaction.objectStore('tempCode');
             store.put({ id: 'current', code, title });
-            localStorage.setItem('title', title);
+            localStorage.setItem('title', title); 
         }
 
         function loadCurrentCode() {
@@ -355,7 +369,7 @@
             }
 
             if (!code) {
-                return;
+                return; 
             }
 
             const transaction = window[objectName].db.transaction(['tempCode'], 'readwrite');
@@ -364,7 +378,7 @@
             const newSave = { id: `save_${Date.now()}`, title, code, timestamp };
 
             store.add(newSave);
-            loadSavedCodes();
+            loadSavedCodes(); 
         }
 
         function loadSavedCodes() {
@@ -374,35 +388,34 @@
 
             request.onsuccess = function(event) {
                 let codes = event.target.result.filter(codeObj => codeObj.code.trim() !== "");
-                codes = codes.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                codes = codes.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); 
                 displaySavedCodes(codes);
             };
         }
 
         function displaySavedCodes(codes) {
             window[objectName].savesContainer.innerHTML = ''; 
+            window[objectName].currentVersionContainer.innerHTML = ''; 
 
             const title = window[objectName].titleInput.value.trim() || 'Version en cours';
             const currentSaveItem = document.createElement('div');
             currentSaveItem.classList.add('sauvegarde-item', 'current-version');
-            currentSaveItem.innerHTML = `
-                <span>${title}</span>
-                <button class="delete-btn">Supprimer</button>
-            `;
+            currentSaveItem.innerHTML = `<span>${title}</span>`;
             currentSaveItem.addEventListener('click', () => {
-                loadCurrentCode();
+                loadCurrentCode(); 
             });
-            window[objectName].savesContainer.prepend(currentSaveItem);
+            window[objectName].currentVersionContainer.appendChild(currentSaveItem);
 
-            codes.slice(0, window[objectName].MAX_SAVES).forEach((codeObj) => {
+            codes.slice(0, window[objectName].MAX_SAVES).forEach((codeObj, index) => {
                 const codeItem = document.createElement('div');
                 codeItem.classList.add('sauvegarde-item');
-                codeItem.innerHTML = `
-                    <span>${codeObj.title} (${codeObj.timestamp})</span>
-                    <button class="delete-btn">Supprimer</button>
-                `;
+                codeItem.innerHTML = `<span>${codeObj.title} (${codeObj.timestamp})</span><button class="delete-btn">Supprimer</button>`;
+                if (index === 0) codeItem.classList.add('hidden');
                 codeItem.querySelector('.delete-btn').addEventListener('click', () => {
-                    deleteSavedCode(codeObj);
+                    const confirmDelete = confirm('Voulez-vous vraiment supprimer cette sauvegarde ?');
+                    if (confirmDelete) {
+                        deleteSavedCode(codeObj);
+                    }
                 });
                 codeItem.addEventListener('click', () => {
                     loadCodeInEditor(codeObj.code);
@@ -494,11 +507,6 @@
         window[objectName].editor.session.on('change', () => {
             saveCurrentCode();
             updateOutput();
-        });
-
-        window[objectName].titleInput.addEventListener('input', () => {
-            saveCurrentCode();
-            displaySavedCodes([]);
         });
 
         function updateOutput() {
