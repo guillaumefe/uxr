@@ -203,32 +203,9 @@
         const saveBtn = document.getElementById('saveBtn'); // Bouton Sauvegarder
         let deleteAllBtn;
 
-        // Restaurer le dernier contenu de l'éditeur au rechargement
-        document.addEventListener('DOMContentLoaded', () => {
-            loadLastSavedCode();
-            displayDeleteAllButton();
-        });
-
-        // Événement du bouton Sauvegarder
-        saveBtn.addEventListener('click', () => {
-            saveEditorContent();
-        });
-
-        // Toggle pour le menu des sauvegardes
-        toggleTab.addEventListener('click', () => {
-            sauvegardesDiv.classList.toggle('visible');
-            toggleTab.textContent = sauvegardesDiv.classList.contains('visible') ? '<' : '>';
-        });
-
-        document.addEventListener('click', (event) => {
-            if (!sauvegardesDiv.contains(event.target) && !toggleTab.contains(event.target)) {
-                sauvegardesDiv.classList.remove('visible');
-                toggleTab.textContent = '>';
-            }
-        });
+        let db;
 
         const dbRequest = indexedDB.open('EditorDB', 1);
-        let db;
 
         dbRequest.onupgradeneeded = function(event) {
             db = event.target.result;
@@ -237,7 +214,9 @@
 
         dbRequest.onsuccess = function(event) {
             db = event.target.result;
-            loadSavedCodes();
+            loadLastSavedCode();  // Appel de la fonction après l'ouverture de la base
+            displayDeleteAllButton();  // Afficher le bouton après que la base de données est prête
+            loadSavedCodes(); // Charger les sauvegardes après que la base est prête
         };
 
         dbRequest.onerror = function() {
@@ -351,6 +330,24 @@
                 loadSavedCodes();
             };
         }
+
+        // Événement du bouton Sauvegarder
+        saveBtn.addEventListener('click', () => {
+            saveEditorContent();
+        });
+
+        // Toggle pour le menu des sauvegardes
+        toggleTab.addEventListener('click', () => {
+            sauvegardesDiv.classList.toggle('visible');
+            toggleTab.textContent = sauvegardesDiv.classList.contains('visible') ? '<' : '>';
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!sauvegardesDiv.contains(event.target) && !toggleTab.contains(event.target)) {
+                sauvegardesDiv.classList.remove('visible');
+                toggleTab.textContent = '>';
+            }
+        });
 
         // Fonction de toggle plein écran
         function toggleFullScreen(element) {
