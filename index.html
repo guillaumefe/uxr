@@ -83,11 +83,12 @@
             margin-bottom: 20px;
         }
 
+        /* Languette pour tirer le volet */
         .tab {
             position: fixed;
             left: 0;
             top: 50%;
-            width: 20px;
+            width: 40px;
             height: 60px;
             background-color: #333;
             color: white;
@@ -96,6 +97,8 @@
             align-items: center;
             justify-content: center;
             border-radius: 0 5px 5px 0;
+            font-size: 18px;
+            z-index: 1001;
         }
 
         .tab:hover {
@@ -104,11 +107,11 @@
 
         .sauvegardes {
             position: fixed;
-            left: 0;
+            left: -240px; /* Position hors de l'écran quand il est fermé */
             width: 200px;
             height: 100%;
             background-color: #FFC107;
-            transition: left 0.3s;
+            transition: left 0.3s ease;
             box-shadow: 2px 0 5px rgba(0,0,0,0.2);
             overflow-y: auto;
             z-index: 1000;
@@ -197,7 +200,10 @@
         <iframe id="output" title="Aperçu"></iframe>
     </div>
 
+    <!-- Languette pour ouvrir et fermer le volet -->
     <div class="tab" id="toggleTab">></div>
+
+    <!-- Volet avec les sauvegardes -->
     <div class="sauvegardes" id="sauvegardes">
         <div class="delete-all-container" id="deleteAllContainer"></div>
         <div class="saves-container" id="savesContainer"></div>
@@ -376,14 +382,17 @@
 
         // Toggle pour le menu des sauvegardes
         window[objectName].toggleTab.addEventListener('click', () => {
-            window[objectName].sauvegardesDiv.classList.toggle('visible');
-            window[objectName].toggleTab.textContent = window[objectName].sauvegardesDiv.classList.contains('visible') ? '<' : '>';
-        });
+            const sauvegardesDiv = window[objectName].sauvegardesDiv;
+            const toggleTab = window[objectName].toggleTab;
 
-        document.addEventListener('click', (event) => {
-            if (!window[objectName].sauvegardesDiv.contains(event.target) && !window[objectName].toggleTab.contains(event.target)) {
-                window[objectName].sauvegardesDiv.classList.remove('visible');
-                window[objectName].toggleTab.textContent = '>';
+            if (sauvegardesDiv.classList.contains('visible')) {
+                sauvegardesDiv.classList.remove('visible');
+                sauvegardesDiv.style.left = '-240px'; // Fermer le volet
+                toggleTab.textContent = '>';
+            } else {
+                sauvegardesDiv.classList.add('visible');
+                sauvegardesDiv.style.left = '0'; // Ouvrir le volet
+                toggleTab.textContent = '<';
             }
         });
 
