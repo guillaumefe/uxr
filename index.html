@@ -193,7 +193,7 @@
 
         .saves-container {
             display: flex;
-            flex-direction: column;
+            flex-direction: column-reverse; /* Les sauvegardes les plus récentes en haut */
             justify-content: flex-start;
             align-items: flex-start;
             margin-top: auto;
@@ -412,7 +412,7 @@
             currentSaveItem.addEventListener('click', () => {
                 loadCurrentCode(); // Réafficher le code en cours dans l'éditeur
             });
-            window[randomObjectName].savesContainer.appendChild(currentSaveItem);
+            window[randomObjectName].savesContainer.prepend(currentSaveItem);
 
             // Afficher les autres sauvegardes
             codes.slice(0, window[randomObjectName].MAX_SAVES).forEach((codeObj) => {
