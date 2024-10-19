@@ -214,8 +214,8 @@
             box-sizing: border-box;
         }
 
-        .sauvegarde-item.hidden {
-            display: none;
+        .sauvegarde-item.active {
+            border: 2px solid #2196F3; /* Surlignage de la sauvegarde active */
         }
 
         .sauvegarde-item.current-version {
@@ -300,6 +300,7 @@
             editor: null,
             output: null,
             db: null,
+            activeSaveId: null,
             sauvegardesDiv: document.getElementById('sauvegardes'),
             currentVersionContainer: document.getElementById('currentVersionContainer'),
             savesContainer: document.getElementById('savesContainer'),
@@ -402,6 +403,8 @@
             currentSaveItem.innerHTML = `<span>${title}</span>`;
             currentSaveItem.addEventListener('click', () => {
                 loadCurrentCode();
+                window[objectName].activeSaveId = null;
+                highlightActiveSave();
             });
             window[objectName].currentVersionContainer.appendChild(currentSaveItem);
 
@@ -416,15 +419,27 @@
                     }
                 });
                 codeItem.addEventListener('click', () => {
-                    loadCodeInEditor(codeObj.code);
+                    loadCodeInEditor(codeObj.code, codeObj.title, codeObj.id);
                 });
                 window[objectName].savesContainer.appendChild(codeItem);
             });
         }
 
-        function loadCodeInEditor(code) {
+        function loadCodeInEditor(code, title, saveId) {
             window[objectName].editor.setValue(code);
+            window[objectName].titleInput.value = title;
+            window[objectName].activeSaveId = saveId;
             updateOutput();
+            highlightActiveSave();
+        }
+
+        function highlightActiveSave() {
+            const saves = document.querySelectorAll('.sauvegarde-item');
+            saves.forEach(save => save.classList.remove('active'));
+            if (window[objectName].activeSaveId) {
+                const activeSave = Array.from(saves).find(save => save.innerHTML.includes(window[objectName].activeSaveId));
+                if (activeSave) activeSave.classList.add('active');
+            }
         }
 
         function deleteSavedCode(codeObj) {
