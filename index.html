@@ -83,6 +83,27 @@
             margin-bottom: 20px;
         }
 
+        .tab {
+            position: fixed;
+            left: 0;
+            top: 50%;
+            width: 40px;
+            height: 60px;
+            background-color: #333;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0 5px 5px 0;
+            font-size: 18px;
+            z-index: 1001;
+        }
+
+        .tab:hover {
+            background-color: #555;
+        }
+
         .sauvegardes {
             position: fixed;
             left: -240px; /* Position hors de l'écran quand il est fermé */
@@ -179,6 +200,9 @@
         <iframe id="output" title="Aperçu"></iframe>
     </div>
 
+    <!-- Languette pour ouvrir le volet -->
+    <div class="tab" id="toggleTab">></div>
+
     <!-- Volet avec les sauvegardes -->
     <div class="sauvegardes" id="sauvegardes">
         <div class="delete-all-container" id="deleteAllContainer">
@@ -213,6 +237,7 @@
             sauvegardesDiv: document.getElementById('sauvegardes'),
             deleteAllContainer: document.getElementById('deleteAllContainer'),
             savesContainer: document.getElementById('savesContainer'),
+            toggleTab: document.getElementById('toggleTab'),
             titleInput: document.getElementById('titleInput'),
             saveBtn: document.getElementById('saveBtn'),
             deleteAllBtn: document.getElementById('deleteAll'),
@@ -258,15 +283,15 @@
             const title = window[objectName].titleInput.value.trim();
             const code = window[objectName].editor.getValue().trim();
 
-            if (!title) {
-                alert("Le titre ne peut pas être vide.");
-                return;
-            }
+            // Si le titre est vide, utiliser un nom générique
+            const generatedTitle = title || `Sauvegarde ${new Date().toLocaleString()}`;
 
             const transaction = window[objectName].db.transaction(['tempCode'], 'readwrite');
             const store = transaction.objectStore('tempCode');
             const timestamp = new Date().toLocaleString();
-            store.add({ title, code, timestamp });
+            const newSave = { id: `save_${Date.now()}`, title: generatedTitle, code, timestamp };
+
+            store.add(newSave);
             loadSavedCodes(); // Recharger les sauvegardes
         }
 
@@ -367,10 +392,17 @@
         // Clic à l'extérieur du volet pour le fermer
         document.addEventListener('click', (event) => {
             const sauvegardesDiv = window[objectName].sauvegardesDiv;
-            if (!sauvegardesDiv.contains(event.target)) {
+            if (!sauvegardesDiv.contains(event.target) && !window[objectName].toggleTab.contains(event.target)) {
                 sauvegardesDiv.classList.remove('visible');
                 sauvegardesDiv.style.left = '-240px'; // Fermer le volet
             }
+        });
+
+        // Languette pour ouvrir le volet
+        window[objectName].toggleTab.addEventListener('click', () => {
+            const sauvegardesDiv = window[objectName].sauvegardesDiv;
+            sauvegardesDiv.classList.toggle('visible');
+            sauvegardesDiv.style.left = sauvegardesDiv.classList.contains('visible') ? '0' : '-240px';
         });
 
         // Fonction de toggle plein écran
