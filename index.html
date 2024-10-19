@@ -68,27 +68,6 @@
             margin-bottom: 20px;
         }
 
-        .tab {
-            position: fixed;
-            left: 0;
-            top: 50%;
-            width: 40px;
-            height: 60px;
-            background-color: #333;
-            color: white;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 0 5px 5px 0;
-            font-size: 18px;
-            z-index: 1001;
-        }
-
-        .tab:hover {
-            background-color: #555;
-        }
-
         .sauvegardes {
             position: fixed;
             left: -240px; /* Position hors de l'écran quand il est fermé */
@@ -184,9 +163,6 @@
         <iframe id="output" title="Aperçu"></iframe>
     </div>
 
-    <!-- Languette pour ouvrir et fermer le volet -->
-    <div class="tab" id="toggleTab">></div>
-
     <!-- Volet avec les sauvegardes -->
     <div class="sauvegardes" id="sauvegardes">
         <div class="delete-all-container" id="deleteAllContainer"></div>
@@ -219,7 +195,6 @@
             sauvegardesDiv: document.getElementById('sauvegardes'),
             deleteAllContainer: document.getElementById('deleteAllContainer'),
             savesContainer: document.getElementById('savesContainer'),
-            toggleTab: document.getElementById('toggleTab'),
             titleInput: document.getElementById('titleInput'),
             deleteAllBtn: null,
         };
@@ -291,19 +266,12 @@
             updateOutput();     // Mettre à jour la visualisation en temps réel
         });
 
-        // Toggle pour ouvrir et fermer le volet des sauvegardes
-        window[objectName].toggleTab.addEventListener('click', () => {
+        // Clic à l'extérieur du volet pour le fermer
+        document.addEventListener('click', (event) => {
             const sauvegardesDiv = window[objectName].sauvegardesDiv;
-            const toggleTab = window[objectName].toggleTab;
-
-            if (sauvegardesDiv.classList.contains('visible')) {
+            if (!sauvegardesDiv.contains(event.target)) {
                 sauvegardesDiv.classList.remove('visible');
                 sauvegardesDiv.style.left = '-240px'; // Fermer le volet
-                toggleTab.textContent = '>';
-            } else {
-                sauvegardesDiv.classList.add('visible');
-                sauvegardesDiv.style.left = '0'; // Ouvrir le volet
-                toggleTab.textContent = '<';
             }
         });
 
