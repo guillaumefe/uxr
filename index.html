@@ -188,8 +188,21 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
 
     <script>
+        // Générer un nom aléatoire
+        function generateRandomName(length = 8) {
+            const letters = 'abcdefghijklmnopqrstuvwxyz';
+            return Array.from({ length }, () => letters[Math.floor(Math.random() * letters.length)]).join('');
+        }
+
+        // Récupérer le nom de l'objet dans localStorage ou en créer un nouveau
+        let objectName = localStorage.getItem('appObjectName');
+        if (!objectName) {
+            objectName = generateRandomName();
+            localStorage.setItem('appObjectName', objectName);
+        }
+
         // Création de l'objet global pour gérer tout l'état de l'application
-        const appState = {
+        window[objectName] = {
             MAX_SAVES: 10,
             editor: null,
             output: null,
@@ -202,22 +215,22 @@
         };
 
         // Configuration ACE Editor
-        appState.editor = ace.edit("editor");
-        appState.editor.setTheme("ace/theme/monokai");
-        appState.editor.session.setMode("ace/mode/html");
-        appState.editor.focus(); // Focus automatique sur l'éditeur
+        window[objectName].editor = ace.edit("editor");
+        window[objectName].editor.setTheme("ace/theme/monokai");
+        window[objectName].editor.session.setMode("ace/mode/html");
+        window[objectName].editor.focus(); // Focus automatique sur l'éditeur
 
-        appState.output = document.getElementById('output');
+        window[objectName].output = document.getElementById('output');
 
         const dbRequest = indexedDB.open('EditorDB', 1);
 
         dbRequest.onupgradeneeded = function(event) {
-            appState.db = event.target.result;
-            appState.db.createObjectStore('codes', { autoIncrement: true });
+            window[objectName].db = event.target.result;
+            window[objectName].db.createObjectStore('codes', { autoIncrement: true });
         };
 
         dbRequest.onsuccess = function(event) {
-            appState.db = event.target.result;
+            window[objectName].db = event.target.result;
             loadLastSavedCode();  // Appel de la fonction après l'ouverture de la base
             displayDeleteAllButton();  // Afficher le bouton après que la base de données est prête
             loadSavedCodes(); // Charger les sauvegardes après que la base est prête
@@ -229,7 +242,7 @@
 
         // Restaurer le dernier code sauvegardé
         function loadLastSavedCode() {
-            const transaction = appState.db.transaction(['codes'], 'readonly');
+            const transaction = window[objectName].db.transaction(['codes'], 'readonly');
             const store = transaction.objectStore('codes');
             const request = store.getAll();
 
@@ -237,7 +250,7 @@
                 const codes = event.target.result;
                 if (codes.length > 0) {
                     const lastCode = codes[codes.length - 1].code; // Prendre le dernier
-                    appState.editor.setValue(lastCode);
+                    window[objectName].editor.setValue(lastCode);
                     updateOutput();
                 }
             };
@@ -245,8 +258,8 @@
 
         // Sauvegarder le contenu de l'éditeur dans la base de données IndexedDB
         function saveEditorContent() {
-            const code = appState.editor.getValue().trim();
-            const transaction = appState.db.transaction(['codes'], 'readwrite');
+            const code = window[objectName].editor.getValue().trim();
+            const transaction = window[objectName].db.transaction(['codes'], 'readwrite');
             const store = transaction.objectStore('codes');
             const timestamp = new Date().toLocaleString();
             store.add({ code, timestamp });
@@ -254,7 +267,7 @@
         }
 
         function loadSavedCodes() {
-            const transaction = appState.db.transaction(['codes'], 'readonly');
+            const transaction = window[objectName].db.transaction(['codes'], 'readonly');
             const store = transaction.objectStore('codes');
             const request = store.getAll();
 
@@ -267,7 +280,7 @@
 
         // Afficher le bouton "Tout effacer" toujours en première position
         function displayDeleteAllButton() {
-            appState.sauvegardesDiv.innerHTML = ''; // Réinitialiser la liste
+            window[objectName].sauvegardesDiv.innerHTML = ''; // Réinitialiser la liste
             const deleteAllButton = document.createElement('button');
             deleteAllButton.classList.add('delete-all-btn');
             deleteAllButton.id = 'deleteAll';
@@ -278,8 +291,8 @@
                     deleteAllSavedCodes();
                 }
             });
-            appState.sauvegardesDiv.appendChild(deleteAllButton);  // Ajouter le bouton rouge en haut
-            appState.deleteAllBtn = deleteAllButton;
+            window[objectName].sauvegardesDiv.appendChild(deleteAllButton);  // Ajouter le bouton rouge en haut
+            window[objectName].deleteAllBtn = deleteAllButton;
         }
 
         function displaySavedCodes(codes) {
@@ -288,7 +301,7 @@
             existingItems.forEach(item => item.remove());
 
             // Trier les codes dans l'ordre décroissant (la plus récente en premier)
-            codes.slice(0, appState.MAX_SAVES).forEach((codeObj, index) => {
+            codes.slice(0, window[objectName].MAX_SAVES).forEach((codeObj, index) => {
                 const codeItem = document.createElement('div');
                 codeItem.classList.add('sauvegarde-item');
                 codeItem.innerHTML = `
@@ -304,17 +317,17 @@
                 codeItem.addEventListener('click', () => {
                     loadCodeInEditor(codeObj.code);
                 });
-                appState.sauvegardesDiv.insertBefore(codeItem, appState.sauvegardesDiv.firstChild);  // Ajouter les sauvegardes après le bouton "Tout effacer"
+                window[objectName].sauvegardesDiv.insertBefore(codeItem, window[objectName].sauvegardesDiv.firstChild);  // Ajouter les sauvegardes après le bouton "Tout effacer"
             });
         }
 
         function loadCodeInEditor(code) {
-            appState.editor.setValue(code);
+            window[objectName].editor.setValue(code);
             updateOutput();
         }
 
         function deleteSavedCode(codeObj) {
-            const transaction = appState.db.transaction(['codes'], 'readwrite');
+            const transaction = window[objectName].db.transaction(['codes'], 'readwrite');
             const store = transaction.objectStore('codes');
             store.openCursor().onsuccess = function(event) {
                 const cursor = event.target.result;
@@ -329,7 +342,7 @@
         }
 
         function deleteAllSavedCodes() {
-            const transaction = appState.db.transaction(['codes'], 'readwrite');
+            const transaction = window[objectName].db.transaction(['codes'], 'readwrite');
             const store = transaction.objectStore('codes');
             store.clear().onsuccess = function() {
                 loadSavedCodes();
@@ -337,20 +350,20 @@
         }
 
         // Événement du bouton Sauvegarder
-        appState.saveBtn.addEventListener('click', () => {
+        window[objectName].saveBtn.addEventListener('click', () => {
             saveEditorContent(); // Sauvegarde manuelle, uniquement quand le bouton est cliqué
         });
 
         // Toggle pour le menu des sauvegardes
-        appState.toggleTab.addEventListener('click', () => {
-            appState.sauvegardesDiv.classList.toggle('visible');
-            appState.toggleTab.textContent = appState.sauvegardesDiv.classList.contains('visible') ? '<' : '>';
+        window[objectName].toggleTab.addEventListener('click', () => {
+            window[objectName].sauvegardesDiv.classList.toggle('visible');
+            window[objectName].toggleTab.textContent = window[objectName].sauvegardesDiv.classList.contains('visible') ? '<' : '>';
         });
 
         document.addEventListener('click', (event) => {
-            if (!appState.sauvegardesDiv.contains(event.target) && !appState.toggleTab.contains(event.target)) {
-                appState.sauvegardesDiv.classList.remove('visible');
-                appState.toggleTab.textContent = '>';
+            if (!window[objectName].sauvegardesDiv.contains(event.target) && !window[objectName].toggleTab.contains(event.target)) {
+                window[objectName].sauvegardesDiv.classList.remove('visible');
+                window[objectName].toggleTab.textContent = '>';
             }
         });
 
@@ -364,26 +377,26 @@
         }
 
         // Double-clic pour mettre l'éditeur en plein écran ou revenir à l'état normal
-        appState.editor.container.addEventListener('dblclick', () => {
-            toggleFullScreen(appState.editor.container);
+        window[objectName].editor.container.addEventListener('dblclick', () => {
+            toggleFullScreen(window[objectName].editor.container);
         });
 
         // Double-clic pour mettre l'iframe en plein écran ou revenir à l'état normal
-        appState.output.addEventListener('dblclick', () => {
-            toggleFullScreen(appState.output);
+        window[objectName].output.addEventListener('dblclick', () => {
+            toggleFullScreen(window[objectName].output);
         });
 
         // Mise à jour du contenu de la visualisation en temps réel
-        appState.editor.session.on('change', updateOutput);
+        window[objectName].editor.session.on('change', updateOutput);
 
         function updateOutput() {
-            if (!appState.output || !appState.output.contentWindow || !appState.output.contentWindow.document) {
+            if (!window[objectName].output || !window[objectName].output.contentWindow || !window[objectName].output.contentWindow.document) {
                 return; // Eviter l'erreur si l'iframe est introuvable
             }
-            const code = appState.editor.getValue();
-            appState.output.contentWindow.document.open();
-            appState.output.contentWindow.document.write(code);
-            appState.output.contentWindow.document.close();
+            const code = window[objectName].editor.getValue();
+            window[objectName].output.contentWindow.document.open();
+            window[objectName].output.contentWindow.document.write(code);
+            window[objectName].output.contentWindow.document.close();
         }
 
         window.addEventListener('beforeunload', () => {
