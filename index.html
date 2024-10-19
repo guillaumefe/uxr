@@ -211,6 +211,11 @@
             box-sizing: border-box;
         }
 
+        /* Masquer la première sauvegarde si elle n'est pas la version en cours */
+        .sauvegarde-item.hidden {
+            display: none;
+        }
+
         /* Style pour la version en cours (première sauvegarde) */
         .sauvegarde-item.current-version {
             background-color: #BBDEFB; /* Bleu clair */
@@ -371,8 +376,7 @@
 
             // Vérifier que le code n'est pas vide
             if (!code) {
-                alert("Le contenu est vide. Sauvegarde annulée.");
-                return;
+                return; // Pas d'alerte, juste ignorer si le contenu est vide
             }
 
             const transaction = window[randomObjectName].db.transaction(['tempCode'], 'readwrite');
@@ -414,14 +418,15 @@
             });
             window[randomObjectName].savesContainer.prepend(currentSaveItem);
 
-            // Afficher les autres sauvegardes
-            codes.slice(0, window[randomObjectName].MAX_SAVES).forEach((codeObj) => {
+            // Afficher les autres sauvegardes, masquer la première si non "Version en cours"
+            codes.slice(0, window[randomObjectName].MAX_SAVES).forEach((codeObj, index) => {
                 const codeItem = document.createElement('div');
                 codeItem.classList.add('sauvegarde-item');
                 codeItem.innerHTML = `
                     <span>${codeObj.title} (${codeObj.timestamp})</span>
                     <button class="delete-btn">Supprimer</button>
                 `;
+                if (index === 0) codeItem.classList.add('hidden'); // Masquer la première sauvegarde si non "Version en cours"
                 codeItem.querySelector('.delete-btn').addEventListener('click', () => {
                     const confirmDelete = confirm('Voulez-vous vraiment supprimer cette sauvegarde ?');
                     if (confirmDelete) {
