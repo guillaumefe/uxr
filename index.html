@@ -188,32 +188,36 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
 
     <script>
-        const MAX_SAVES = 10; // Constante pour le nombre maximum de sauvegardes
-        const sauvegardesDiv = document.getElementById('sauvegardes'); // Correction de la référence
+        // Création de l'objet global pour gérer tout l'état de l'application
+        const appState = {
+            MAX_SAVES: 10,
+            editor: null,
+            output: null,
+            db: null,
+            sauvegardesDiv: document.getElementById('sauvegardes'),
+            toggleTab: document.getElementById('toggleTab'),
+            titleInput: document.getElementById('titleInput'),
+            saveBtn: document.getElementById('saveBtn'),
+            deleteAllBtn: null,
+        };
 
         // Configuration ACE Editor
-        const editor = ace.edit("editor");
-        editor.setTheme("ace/theme/monokai");
-        editor.session.setMode("ace/mode/html");
-        editor.focus(); // Focus automatique sur l'éditeur
+        appState.editor = ace.edit("editor");
+        appState.editor.setTheme("ace/theme/monokai");
+        appState.editor.session.setMode("ace/mode/html");
+        appState.editor.focus(); // Focus automatique sur l'éditeur
 
-        const output = document.getElementById('output');
-        const toggleTab = document.getElementById('toggleTab');
-        const titleInput = document.getElementById('titleInput');
-        const saveBtn = document.getElementById('saveBtn'); // Bouton Sauvegarder
-        let deleteAllBtn;
-
-        let db;
+        appState.output = document.getElementById('output');
 
         const dbRequest = indexedDB.open('EditorDB', 1);
 
         dbRequest.onupgradeneeded = function(event) {
-            db = event.target.result;
-            db.createObjectStore('codes', { autoIncrement: true });
+            appState.db = event.target.result;
+            appState.db.createObjectStore('codes', { autoIncrement: true });
         };
 
         dbRequest.onsuccess = function(event) {
-            db = event.target.result;
+            appState.db = event.target.result;
             loadLastSavedCode();  // Appel de la fonction après l'ouverture de la base
             displayDeleteAllButton();  // Afficher le bouton après que la base de données est prête
             loadSavedCodes(); // Charger les sauvegardes après que la base est prête
@@ -225,7 +229,7 @@
 
         // Restaurer le dernier code sauvegardé
         function loadLastSavedCode() {
-            const transaction = db.transaction(['codes'], 'readonly');
+            const transaction = appState.db.transaction(['codes'], 'readonly');
             const store = transaction.objectStore('codes');
             const request = store.getAll();
 
@@ -233,7 +237,7 @@
                 const codes = event.target.result;
                 if (codes.length > 0) {
                     const lastCode = codes[codes.length - 1].code; // Prendre le dernier
-                    editor.setValue(lastCode);
+                    appState.editor.setValue(lastCode);
                     updateOutput();
                 }
             };
@@ -241,8 +245,8 @@
 
         // Sauvegarder le contenu de l'éditeur dans la base de données IndexedDB
         function saveEditorContent() {
-            const code = editor.getValue().trim();
-            const transaction = db.transaction(['codes'], 'readwrite');
+            const code = appState.editor.getValue().trim();
+            const transaction = appState.db.transaction(['codes'], 'readwrite');
             const store = transaction.objectStore('codes');
             const timestamp = new Date().toLocaleString();
             store.add({ code, timestamp });
@@ -250,7 +254,7 @@
         }
 
         function loadSavedCodes() {
-            const transaction = db.transaction(['codes'], 'readonly');
+            const transaction = appState.db.transaction(['codes'], 'readonly');
             const store = transaction.objectStore('codes');
             const request = store.getAll();
 
@@ -263,7 +267,7 @@
 
         // Afficher le bouton "Tout effacer" toujours en première position
         function displayDeleteAllButton() {
-            sauvegardesDiv.innerHTML = ''; // Réinitialiser la liste
+            appState.sauvegardesDiv.innerHTML = ''; // Réinitialiser la liste
             const deleteAllButton = document.createElement('button');
             deleteAllButton.classList.add('delete-all-btn');
             deleteAllButton.id = 'deleteAll';
@@ -274,8 +278,8 @@
                     deleteAllSavedCodes();
                 }
             });
-            sauvegardesDiv.appendChild(deleteAllButton);  // Ajouter le bouton rouge en haut
-            deleteAllBtn = deleteAllButton;
+            appState.sauvegardesDiv.appendChild(deleteAllButton);  // Ajouter le bouton rouge en haut
+            appState.deleteAllBtn = deleteAllButton;
         }
 
         function displaySavedCodes(codes) {
@@ -283,7 +287,7 @@
             const existingItems = document.querySelectorAll('.sauvegarde-item');
             existingItems.forEach(item => item.remove());
 
-            codes.slice(0, MAX_SAVES).forEach((codeObj, index) => {
+            codes.slice(0, appState.MAX_SAVES).forEach((codeObj, index) => {
                 const codeItem = document.createElement('div');
                 codeItem.classList.add('sauvegarde-item');
                 codeItem.innerHTML = `
@@ -299,17 +303,17 @@
                 codeItem.addEventListener('click', () => {
                     loadCodeInEditor(codeObj.code);
                 });
-                sauvegardesDiv.appendChild(codeItem);  // Ajouter les sauvegardes après le bouton "Tout effacer"
+                appState.sauvegardesDiv.appendChild(codeItem);  // Ajouter les sauvegardes après le bouton "Tout effacer"
             });
         }
 
         function loadCodeInEditor(code) {
-            editor.setValue(code);
+            appState.editor.setValue(code);
             updateOutput();
         }
 
         function deleteSavedCode(codeObj) {
-            const transaction = db.transaction(['codes'], 'readwrite');
+            const transaction = appState.db.transaction(['codes'], 'readwrite');
             const store = transaction.objectStore('codes');
             store.openCursor().onsuccess = function(event) {
                 const cursor = event.target.result;
@@ -324,7 +328,7 @@
         }
 
         function deleteAllSavedCodes() {
-            const transaction = db.transaction(['codes'], 'readwrite');
+            const transaction = appState.db.transaction(['codes'], 'readwrite');
             const store = transaction.objectStore('codes');
             store.clear().onsuccess = function() {
                 loadSavedCodes();
@@ -332,20 +336,20 @@
         }
 
         // Événement du bouton Sauvegarder
-        saveBtn.addEventListener('click', () => {
+        appState.saveBtn.addEventListener('click', () => {
             saveEditorContent(); // Sauvegarde manuelle, uniquement quand le bouton est cliqué
         });
 
         // Toggle pour le menu des sauvegardes
-        toggleTab.addEventListener('click', () => {
-            sauvegardesDiv.classList.toggle('visible');
-            toggleTab.textContent = sauvegardesDiv.classList.contains('visible') ? '<' : '>';
+        appState.toggleTab.addEventListener('click', () => {
+            appState.sauvegardesDiv.classList.toggle('visible');
+            appState.toggleTab.textContent = appState.sauvegardesDiv.classList.contains('visible') ? '<' : '>';
         });
 
         document.addEventListener('click', (event) => {
-            if (!sauvegardesDiv.contains(event.target) && !toggleTab.contains(event.target)) {
-                sauvegardesDiv.classList.remove('visible');
-                toggleTab.textContent = '>';
+            if (!appState.sauvegardesDiv.contains(event.target) && !appState.toggleTab.contains(event.target)) {
+                appState.sauvegardesDiv.classList.remove('visible');
+                appState.toggleTab.textContent = '>';
             }
         });
 
@@ -359,27 +363,31 @@
         }
 
         // Double-clic pour mettre l'éditeur en plein écran ou revenir à l'état normal
-        editor.container.addEventListener('dblclick', () => {
-            toggleFullScreen(editor.container);
+        appState.editor.container.addEventListener('dblclick', () => {
+            toggleFullScreen(appState.editor.container);
         });
 
         // Double-clic pour mettre l'iframe en plein écran ou revenir à l'état normal
-        output.addEventListener('dblclick', () => {
-            toggleFullScreen(output);
+        appState.output.addEventListener('dblclick', () => {
+            toggleFullScreen(appState.output);
         });
 
         // Mise à jour du contenu de la visualisation en temps réel
-        editor.session.on('change', updateOutput);
+        appState.editor.session.on('change', updateOutput);
 
         function updateOutput() {
-            if (!output || !output.contentWindow || !output.contentWindow.document) {
+            if (!appState.output || !appState.output.contentWindow || !appState.output.contentWindow.document) {
                 return; // Eviter l'erreur si l'iframe est introuvable
             }
-            const code = editor.getValue();
-            output.contentWindow.document.open();
-            output.contentWindow.document.write(code);
-            output.contentWindow.document.close();
+            const code = appState.editor.getValue();
+            appState.output.contentWindow.document.open();
+            appState.output.contentWindow.document.write(code);
+            appState.output.contentWindow.document.close();
         }
+
+        window.addEventListener('beforeunload', () => {
+            saveEditorContent();
+        });
     </script>
 </body>
 </html>
