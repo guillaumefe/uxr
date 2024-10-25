@@ -10,16 +10,19 @@
             padding: 0;
             box-sizing: border-box;
         }
+
         html, body {
             height: 100%;
             font-family: Arial, sans-serif;
             overflow: hidden;
         }
+
         .container {
             display: flex;
             height: 100vh;
             transition: all 0.3s ease;
         }
+
         #editorContainer {
             flex-basis: 50%;
             position: relative;
@@ -27,16 +30,19 @@
             display: flex;
             transition: flex-basis 0.3s ease;
         }
+
         #editor {
             width: 100%;
             height: 100%;
         }
+
         #output {
             flex: 1;
             border: none;
             width: 100%;
             height: 100%;
         }
+
         .tab {
             position: absolute;
             top: 50%;
@@ -51,12 +57,15 @@
             font-size: 14px;
             border-radius: 5px 5px 0 0;
         }
+
         .collapsed #editorContainer {
             flex-basis: 0;
         }
+
         .collapsed #editorContainer #editor {
             display: none;
         }
+
         .resizer {
             width: 5px;
             cursor: ew-resize;
@@ -77,125 +86,155 @@
         </div>
         <iframe id="output" title="Aperçu"></iframe>
     </div>
+
     <script>
         (function() {
-            const MyEditorApp = {
-                aceEditor: null,
-                expirationDuration: 3600000,
-                isResizing: false,
-                uniqueSignature: "[MyEditorApp]",
-                
-                init() {
-                    console.log(this.uniqueSignature, "Initializing MyEditorApp...");
-                    this.loadAceEditor(() => {
-                        this.initAceEditor();
-                        this.setupEvents();
-                        this.loadEditorState();
-                        this.loadEditorContent();
-                        this.updateOutput();
-                    });
-                },
-
-                loadAceEditor(callback) {
-                    const aceScript = document.createElement('script');
-                    aceScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js';
-                    aceScript.onload = callback;
-                    document.head.appendChild(aceScript);
-                },
-
-                initAceEditor() {
-                    console.log(this.uniqueSignature, "Initializing Ace Editor...");
-                    this.aceEditor = ace.edit("editor");
-                    this.aceEditor.setTheme("ace/theme/github");
-                    this.aceEditor.session.setMode("ace/mode/html");
-                    this.aceEditor.setOptions({
-                        enableBasicAutocompletion: true,
-                        enableLiveAutocompletion: true,
-                        showPrintMargin: false
-                    });
-                },
-
-                setupEvents() {
-                    document.getElementById('toggleTab').onclick = () => this.toggleEditor();
-                    document.getElementById('resizer').addEventListener('mousedown', (e) => {
-                        this.isResizing = true;
-                        document.addEventListener('mousemove', this.resizeEditor.bind(this));
-                        document.addEventListener('mouseup', this.stopResizing.bind(this));
-                        e.preventDefault();
-                    });
-                    this.aceEditor.session.on('change', () => {
-                        this.saveEditorContent();
-                        this.updateOutput();
-                    });
-                },
-
-                saveEditorState(collapsed) {
-                    console.log(this.uniqueSignature, "Saving editor state...");
-                    const state = {
-                        collapsed: collapsed,
-                        timestamp: Date.now()
-                    };
-                    localStorage.setItem('editorState', JSON.stringify(state));
-                },
-
-                loadEditorState() {
-                    const state = JSON.parse(localStorage.getItem('editorState'));
-                    if (state && Date.now() - state.timestamp < this.expirationDuration) {
-                        if (state.collapsed) {
-                            document.getElementById('container').classList.add('collapsed');
-                        }
-                    } else {
-                        localStorage.removeItem('editorState');
-                    }
-                },
-
-                toggleEditor() {
-                    console.log(this.uniqueSignature, "Toggling editor view...");
-                    document.getElementById('container').classList.toggle('collapsed');
-                    this.saveEditorState(document.getElementById('container').classList.contains('collapsed'));
-                },
-
-                loadEditorContent() {
-                    const savedContent = localStorage.getItem('editorContent');
-                    if (savedContent) {
-                        this.aceEditor.setValue(savedContent, -1);
-                    }
-                },
-
-                saveEditorContent() {
-                    console.log(this.uniqueSignature, "Saving editor content...");
-                    const code = this.aceEditor.getValue();
-                    localStorage.setItem('editorContent', code);
-                },
-
-                updateOutput() {
-                    console.log(this.uniqueSignature, "Updating output preview...");
-                    const code = this.aceEditor.getValue();
-                    if (code.includes(this.uniqueSignature)) return;
-                    const output = document.getElementById('output');
-                    output.contentWindow.document.open();
-                    output.contentWindow.document.write(code);
-                    output.contentWindow.document.close();
-                },
-
-                resizeEditor(e) {
-                    if (this.isResizing) {
-                        const newWidth = e.clientX;
-                        if (newWidth > 150 && newWidth < window.innerWidth * 0.8) {
-                            document.getElementById('editorContainer').style.flexBasis = `${newWidth}px`;
-                        }
-                    }
-                },
-
-                stopResizing() {
-                    this.isResizing = false;
-                    document.removeEventListener('mousemove', this.resizeEditor.bind(this));
-                    document.removeEventListener('mouseup', this.stopResizing.bind(this));
+            const originalLog = console.log;
+            const originalWarn = console.warn;
+            const originalError = console.error;
+            const internalSignature = "[MyEditorApp]"; // Signature pour identifier les logs internes
+    
+            // Filtrer les logs internes
+            console.log = function(...args) {
+                if (!args.some(arg => typeof arg === "string" && arg.includes(internalSignature))) {
+                    originalLog.apply(console, args);
+                }
+            };
+    
+            console.warn = function(...args) {
+                if (!args.some(arg => typeof arg === "string" && arg.includes(internalSignature))) {
+                    originalWarn.apply(console, args);
+                }
+            };
+    
+            console.error = function(...args) {
+                if (!args.some(arg => typeof arg === "string" && arg.includes(internalSignature))) {
+                    originalError.apply(console, args);
                 }
             };
             
-            window.onload = () => MyEditorApp.init();
+            // Injecter des logs avec la signature interne (exemple)
+            console.log(internalSignature, "Application initialized.");
+            console.warn(internalSignature, "Internal warning example.");
         })();
+    </script>
+
+    <script>
+        const MyEditorApp = {
+            aceEditor: null,
+            expirationDuration: 3600000, // 1 heure
+            isResizing: false,
+            uniqueSignature: "// Signature unique : Éditeur Auto-exécutable",
+
+            init() {
+                this.loadAceEditor(() => {
+                    this.initAceEditor();
+                    this.setupEvents();
+                    this.loadEditorState();
+                    this.loadEditorContent();
+                    this.updateOutput();
+                });
+            },
+
+            loadAceEditor(callback) {
+                const aceScript = document.createElement('script');
+                aceScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js';
+                aceScript.onload = callback;
+                document.head.appendChild(aceScript);
+            },
+
+            initAceEditor() {
+                this.aceEditor = ace.edit("editor");
+                this.aceEditor.setTheme("ace/theme/github");
+                this.aceEditor.session.setMode("ace/mode/html");
+                this.aceEditor.setOptions({
+                    enableBasicAutocompletion: true,
+                    enableLiveAutocompletion: true,
+                    showPrintMargin: false
+                });
+            },
+
+            setupEvents() {
+                document.getElementById('toggleTab').onclick = () => this.toggleEditor();
+                document.getElementById('resizer').addEventListener('mousedown', (e) => {
+                    this.isResizing = true;
+                    document.addEventListener('mousemove', this.resizeEditor.bind(this));
+                    document.addEventListener('mouseup', this.stopResizing.bind(this));
+                    e.preventDefault();
+                });
+
+                this.aceEditor.session.on('change', () => {
+                    this.saveEditorContent();
+                    this.updateOutput();
+                });
+            },
+
+            saveEditorState(collapsed) {
+                const state = {
+                    collapsed: collapsed,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem('editorState', JSON.stringify(state));
+            },
+
+            loadEditorState() {
+                const state = JSON.parse(localStorage.getItem('editorState'));
+                if (state && Date.now() - state.timestamp < this.expirationDuration) {
+                    if (state.collapsed) {
+                        document.getElementById('container').classList.add('collapsed');
+                    }
+                } else {
+                    localStorage.removeItem('editorState');
+                }
+            },
+
+            toggleEditor() {
+                document.getElementById('container').classList.toggle('collapsed');
+                this.saveEditorState(document.getElementById('container').classList.contains('collapsed'));
+            },
+
+            loadEditorContent() {
+                const savedContent = localStorage.getItem('editorContent');
+                if (savedContent) {
+                    this.aceEditor.setValue(savedContent, -1);
+                }
+            },
+
+            saveEditorContent() {
+                const code = this.aceEditor.getValue();
+                localStorage.setItem('editorContent', code);
+            },
+
+            updateOutput() {
+                const code = this.aceEditor.getValue();
+
+                // Stop exécution si la signature est détectée
+                if (code.includes(this.uniqueSignature)) return;
+
+                const output = document.getElementById('output');
+                output.contentWindow.document.open();
+                output.contentWindow.document.write(code);
+                output.contentWindow.document.close();
+            },
+
+            resizeEditor(e) {
+                if (this.isResizing) {
+                    const newWidth = e.clientX;
+                    if (newWidth > 150 && newWidth < window.innerWidth * 0.8) {
+                        document.getElementById('editorContainer').style.flexBasis = `${newWidth}px`;
+                    }
+                }
+            },
+
+            stopResizing() {
+                this.isResizing = false;
+                document.removeEventListener('mousemove', this.resizeEditor.bind(this));
+                document.removeEventListener('mouseup', this.stopResizing.bind(this));
+            }
+        };
+
+        // Initialiser l'application
+        window.onload = () => MyEditorApp.init();
     </script>
 </body>
 </html>
