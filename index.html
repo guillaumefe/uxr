@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Éditeur en Direct</title>
+    <title>Éditeur en Direct avec Ace Editor</title>
     <style>
         body {
             display: flex;
@@ -12,16 +12,13 @@
             height: 100vh;
             margin: 0;
         }
-        textarea, iframe {
+        #editor, iframe {
             flex: 1;
             border: none;
         }
-        textarea {
-            padding: 10px;
-            font-size: 16px;
-            resize: none;
-            margin-bottom: 10px;
-            font-family: monospace;
+        #editor {
+            height: 300px; /* Hauteur initiale, peut être ajustée */
+            width: 100%;
         }
         iframe {
             max-width: 100%;
@@ -32,7 +29,7 @@
             body {
                 flex-direction: row;
             }
-            textarea {
+            #editor {
                 margin-right: 10px;
                 margin-bottom: 0;
             }
@@ -40,30 +37,41 @@
     </style>
 </head>
 <body>
-    <textarea id="editor" placeholder="Écrivez votre code ici..."></textarea>
+    <div id="editor">Écrivez votre code ici...</div>
     <iframe id="output" title="Aperçu"></iframe>
+
+    <!-- Inclure Ace Editor sans attribut integrity -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
     <script>
-        const editor = document.getElementById('editor');
+        // Initialiser Ace Editor sur le div #editor
+        const aceEditor = ace.edit("editor");
+        aceEditor.setTheme("ace/theme/github"); // Thème GitHub
+        aceEditor.session.setMode("ace/mode/html"); // Mode HTML, ajustez selon vos besoins
+        aceEditor.setOptions({
+            enableBasicAutocompletion: true,
+            enableLiveAutocompletion: true
+        });
+
         const output = document.getElementById('output');
-        
+
         // Fonction pour mettre à jour le contenu de l'éditeur avec le contenu du localStorage
         function loadEditorContent() {
             const savedContent = localStorage.getItem('editorContent');
             if (savedContent) {
-                editor.value = savedContent;
+                aceEditor.setValue(savedContent, -1); // Le deuxième paramètre -1 ne déplace pas le curseur
             }
         }
 
         // Fonction pour sauvegarder le contenu de l'éditeur dans le localStorage
         function saveEditorContent() {
-            const code = editor.value;
+            const code = aceEditor.getValue();
             localStorage.setItem('editorContent', code);
         }
 
         // Fonction pour mettre à jour la sortie en temps réel
         function updateOutput() {
-            const code = editor.value;
-            // Sécuriser le contenu en utilisant une chaîne vide ou des templates
+            const code = aceEditor.getValue();
             output.contentWindow.document.open();
             output.contentWindow.document.write(code);
             output.contentWindow.document.close();
@@ -73,13 +81,18 @@
         loadEditorContent();
 
         // Mettre à jour le localStorage et l'iframe à chaque modification de l'éditeur
-        editor.addEventListener('input', () => {
+        aceEditor.session.on('change', () => {
             saveEditorContent();
             updateOutput();
         });
 
         // Mettre à jour la sortie initiale
         updateOutput();
+
+        // Optionnel : Ajuster la taille de l'éditeur lors du redimensionnement de la fenêtre
+        window.addEventListener('resize', () => {
+            aceEditor.resize();
+        });
     </script>
 </body>
 </html>
