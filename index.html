@@ -3,199 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Éditeur avec Aperçu Repliable et Redimensionnable</title>
+    <title>Éditeur en Direct</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        html, body {
-            height: 100%;
-            font-family: Arial, sans-serif;
-            overflow: hidden;
-        }
-        .container {
+        body {
             display: flex;
+            flex-direction: column;
+            align-items: stretch;
             height: 100vh;
-            transition: all 0.3s ease;
+            margin: 0;
         }
-        #editorContainer {
-            flex-basis: 50%;
-            position: relative;
-            border-right: 1px solid #ddd;
-            display: flex;
-            transition: flex-basis 0.3s ease;
-        }
-        #editor {
-            width: 100%;
-            height: 100%;
-        }
-        #output {
+        textarea, iframe {
             flex: 1;
             border: none;
-            width: 100%;
-            height: 100%;
         }
-        .tab {
-            position: absolute;
-            top: 50%;
-            right: -20px;
-            transform: rotate(-90deg);
-            transform-origin: right center;
+        textarea {
             padding: 10px;
-            background-color: #4A90E2;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 14px;
-            border-radius: 5px 5px 0 0;
+            font-size: 16px;
+            resize: none;
+            margin-bottom: 10px;
         }
-        .collapsed #editorContainer {
-            flex-basis: 0;
+        iframe {
+            max-width: 100%;
         }
-        .collapsed #editorContainer #editor {
-            display: none;
-        }
-        .resizer {
-            width: 5px;
-            cursor: ew-resize;
-            background-color: #ddd;
-            position: absolute;
-            top: 0;
-            right: 0;
-            bottom: 0;
+
+        @media (min-width: 768px) {
+            body {
+                flex-direction: row;
+            }
+            textarea {
+                margin-right: 10px;
+                margin-bottom: 0;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container" id="container">
-        <div id="editorContainer">
-            <div id="editor"></div>
-            <div class="tab" id="toggleTab">🠔 Code</div>
-            <div class="resizer" id="resizer"></div>
-        </div>
-        <iframe id="output" title="Aperçu"></iframe>
-    </div>
-
+    <textarea id="editor" placeholder="Écrivez votre code ici..."></textarea>
+    <iframe id="output" title="Aperçu"></iframe>
     <script>
-        const MyEditorApp = {
-            aceEditor: null,
-            expirationDuration: 3600000, // 1 heure
-            isResizing: false,
-            uniqueSignature: "// Signature unique : Éditeur Auto-exécutable",
-
-            init() {
-                this.loadAceEditor(() => {
-                    this.initAceEditor();
-                    this.setupEvents();
-                    this.loadEditorState();
-                    this.loadEditorContent();
-                    this.updateOutput();
-                });
-            },
-
-            loadAceEditor(callback) {
-                const aceScript = document.createElement('script');
-                aceScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js';
-                aceScript.onload = callback;
-                document.head.appendChild(aceScript);
-            },
-
-            initAceEditor() {
-                this.aceEditor = ace.edit("editor");
-                this.aceEditor.setTheme("ace/theme/github");
-                this.aceEditor.session.setMode("ace/mode/html");
-                this.aceEditor.setOptions({
-                    enableBasicAutocompletion: true,
-                    enableLiveAutocompletion: true,
-                    showPrintMargin: false
-                });
-            },
-
-            setupEvents() {
-                document.getElementById('toggleTab').onclick = () => this.toggleEditor();
-                document.getElementById('resizer').addEventListener('mousedown', (e) => {
-                    this.isResizing = true;
-                    document.addEventListener('mousemove', this.resizeEditor.bind(this));
-                    document.addEventListener('mouseup', this.stopResizing.bind(this));
-                    e.preventDefault();
-                });
-
-                this.aceEditor.session.on('change', () => {
-                    this.saveEditorContent();
-                    this.updateOutput();
-                });
-            },
-
-            saveEditorState(collapsed) {
-                const state = {
-                    collapsed: collapsed,
-                    timestamp: Date.now()
-                };
-                localStorage.setItem('editorState', JSON.stringify(state));
-            },
-
-            loadEditorState() {
-                const state = JSON.parse(localStorage.getItem('editorState'));
-                if (state && Date.now() - state.timestamp < this.expirationDuration) {
-                    if (state.collapsed) {
-                        document.getElementById('container').classList.add('collapsed');
-                    }
-                } else {
-                    localStorage.removeItem('editorState');
-                }
-            },
-
-            toggleEditor() {
-                document.getElementById('container').classList.toggle('collapsed');
-                this.saveEditorState(document.getElementById('container').classList.contains('collapsed'));
-            },
-
-            loadEditorContent() {
-                const savedContent = localStorage.getItem('editorContent');
-                if (savedContent) {
-                    this.aceEditor.setValue(savedContent, -1);
-                }
-            },
-
-            saveEditorContent() {
-                const code = this.aceEditor.getValue();
-                localStorage.setItem('editorContent', code);
-            },
-
-            updateOutput() {
-                const code = this.aceEditor.getValue();
-                
-                // Vérifier si le code inclut la signature unique pour le bloquer en dehors de l'aperçu en direct
-                if (code.includes(this.uniqueSignature) && document.activeElement.id !== 'editor') {
-                    console.warn("Exécution bloquée en raison de la signature de sécurité.");
-                    return;
-                }
-
-                const output = document.getElementById('output');
-                output.contentWindow.document.open();
-                output.contentWindow.document.write(code);
-                output.contentWindow.document.close();
-            },
-
-            resizeEditor(e) {
-                if (this.isResizing) {
-                    const newWidth = e.clientX;
-                    if (newWidth > 150 && newWidth < window.innerWidth * 0.8) {
-                        document.getElementById('editorContainer').style.flexBasis = `${newWidth}px`;
-                    }
-                }
-            },
-
-            stopResizing() {
-                this.isResizing = false;
-                document.removeEventListener('mousemove', this.resizeEditor.bind(this));
-                document.removeEventListener('mouseup', this.stopResizing.bind(this));
+        const editor = document.getElementById('editor');
+        const output = document.getElementById('output');
+        
+        // Fonction pour mettre à jour le contenu de l'éditeur avec le contenu du localStorage
+        function loadEditorContent() {
+            const savedContent = localStorage.getItem('editorContent');
+            if (savedContent) {
+                editor.value = savedContent;
             }
-        };
+        }
 
-        window.onload = () => MyEditorApp.init();
+        // Fonction pour sauvegarder le contenu de l'éditeur dans le localStorage
+        function saveEditorContent() {
+            const code = editor.value;
+            localStorage.setItem('editorContent', code);
+        }
+
+        // Mettre à jour l'éditeur au chargement de la page
+        loadEditorContent();
+
+        // Mettre à jour le localStorage à chaque modification de l'éditeur
+        editor.addEventListener('input', () => {
+            saveEditorContent();
+            updateOutput();
+        });
+
+        // Fonction pour mettre à jour la sortie en temps réel
+        function updateOutput() {
+            const code = editor.value;
+            output.contentWindow.document.open();
+            output.contentWindow.document.write(code);
+            output.contentWindow.document.close();
+        }
+        
+        // Mettre à jour la sortie initiale
+        updateOutput();
     </script>
 </body>
 </html>
