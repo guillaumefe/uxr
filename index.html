@@ -81,7 +81,7 @@
     <script>
         const MyEditorApp = {
             aceEditor: null,
-            expirationDuration: 3600000, // 1 hour
+            expirationDuration: 3600000,
             isResizing: false,
             uniqueSignature: "// Signature unique : Éditeur Auto-exécutable",
 
@@ -99,7 +99,6 @@
                 const aceScript = document.createElement('script');
                 aceScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js';
                 aceScript.onload = () => {
-                    // Load language tools for autocompletion
                     const langToolsScript = document.createElement('script');
                     langToolsScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-language_tools.js';
                     langToolsScript.onload = callback;
@@ -173,7 +172,6 @@
 
             updateOutput() {
                 const code = this.aceEditor.getValue();
-
                 if (code.includes(this.uniqueSignature)) return;
 
                 const output = document.getElementById('output');
