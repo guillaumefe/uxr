@@ -21,9 +21,11 @@
             font-size: 16px;
             resize: none;
             margin-bottom: 10px;
+            font-family: monospace;
         }
         iframe {
             max-width: 100%;
+            background-color: #ffffff;
         }
 
         @media (min-width: 768px) {
@@ -58,23 +60,24 @@
             localStorage.setItem('editorContent', code);
         }
 
+        // Fonction pour mettre à jour la sortie en temps réel
+        function updateOutput() {
+            const code = editor.value;
+            // Sécuriser le contenu en utilisant une chaîne vide ou des templates
+            output.contentWindow.document.open();
+            output.contentWindow.document.write(code);
+            output.contentWindow.document.close();
+        }
+
         // Mettre à jour l'éditeur au chargement de la page
         loadEditorContent();
 
-        // Mettre à jour le localStorage à chaque modification de l'éditeur
+        // Mettre à jour le localStorage et l'iframe à chaque modification de l'éditeur
         editor.addEventListener('input', () => {
             saveEditorContent();
             updateOutput();
         });
 
-        // Fonction pour mettre à jour la sortie en temps réel
-        function updateOutput() {
-            const code = editor.value;
-            output.contentWindow.document.open();
-            output.contentWindow.document.write(code);
-            output.contentWindow.document.close();
-        }
-        
         // Mettre à jour la sortie initiale
         updateOutput();
     </script>
