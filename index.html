@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Éditeur avec Aperçu Repliable</title>
+    <title>Éditeur avec Aperçu Repliable et Redimensionnable</title>
     <style>
-        /* Réinitialiser les marges et paddings pour le body */
         * {
             margin: 0;
             padding: 0;
@@ -26,9 +25,10 @@
 
         #editorContainer {
             flex-basis: 50%;
-            transition: flex-basis 0.3s ease;
             position: relative;
             border-right: 1px solid #ddd;
+            display: flex;
+            transition: flex-basis 0.3s ease;
         }
 
         #editor {
@@ -43,7 +43,6 @@
             height: 100%;
         }
 
-        /* Languette pour déplier le volet de code */
         .tab {
             position: absolute;
             top: 50%;
@@ -59,7 +58,6 @@
             border-radius: 5px 5px 0 0;
         }
 
-        /* CSS pour l'état replié */
         .collapsed #editorContainer {
             flex-basis: 0;
         }
@@ -68,8 +66,14 @@
             display: none;
         }
 
-        .collapsed .tab {
-            display: block;
+        .resizer {
+            width: 5px;
+            cursor: ew-resize;
+            background-color: #ddd;
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
         }
     </style>
 </head>
@@ -77,90 +81,128 @@
     <div class="container" id="container">
         <div id="editorContainer">
             <div id="editor"></div>
-            <div class="tab" id="toggleTab" onclick="toggleEditor()">🠔 Code</div>
+            <div class="tab" id="toggleTab">🠔 Code</div>
+            <div class="resizer" id="resizer"></div>
         </div>
         <iframe id="output" title="Aperçu"></iframe>
     </div>
 
-    <!-- Inclusion de Ace Editor -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    
     <script>
-        // Initialisation de Ace Editor
-        const aceEditor = ace.edit("editor");
-        aceEditor.setTheme("ace/theme/github");
-        aceEditor.session.setMode("ace/mode/html");
-        aceEditor.setOptions({
-            enableBasicAutocompletion: true,
-            enableLiveAutocompletion: true,
-            showPrintMargin: false
-        });
+        const MyEditorApp = {
+            aceEditor: null,
+            expirationDuration: 3600000, // 1 heure
+            isResizing: false,
+            uniqueSignature: "// Signature unique : Éditeur Auto-exécutable",
 
-        const container = document.getElementById('container');
-        const editorContainer = document.getElementById('editorContainer');
-        const output = document.getElementById('output');
-        
-        // Définir une durée d'expiration (en millisecondes)
-        const expirationDuration = 3600000; // 1 heure
+            init() {
+                this.loadAceEditor(() => {
+                    this.initAceEditor();
+                    this.setupEvents();
+                    this.loadEditorState();
+                    this.loadEditorContent();
+                    this.updateOutput();
+                });
+            },
 
-        // Fonction pour sauvegarder l'état de l'éditeur en localStorage avec une date d'expiration
-        function saveEditorState(collapsed) {
-            const state = {
-                collapsed: collapsed,
-                timestamp: Date.now()
-            };
-            localStorage.setItem('editorState', JSON.stringify(state));
-        }
+            loadAceEditor(callback) {
+                const aceScript = document.createElement('script');
+                aceScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js';
+                aceScript.onload = callback;
+                document.head.appendChild(aceScript);
+            },
 
-        // Charger l'état de l'éditeur depuis le localStorage
-        function loadEditorState() {
-            const state = JSON.parse(localStorage.getItem('editorState'));
-            if (state && Date.now() - state.timestamp < expirationDuration) {
-                if (state.collapsed) {
-                    container.classList.add('collapsed');
+            initAceEditor() {
+                this.aceEditor = ace.edit("editor");
+                this.aceEditor.setTheme("ace/theme/github");
+                this.aceEditor.session.setMode("ace/mode/html");
+                this.aceEditor.setOptions({
+                    enableBasicAutocompletion: true,
+                    enableLiveAutocompletion: true,
+                    showPrintMargin: false
+                });
+            },
+
+            setupEvents() {
+                document.getElementById('toggleTab').onclick = () => this.toggleEditor();
+                document.getElementById('resizer').addEventListener('mousedown', (e) => {
+                    this.isResizing = true;
+                    document.addEventListener('mousemove', this.resizeEditor.bind(this));
+                    document.addEventListener('mouseup', this.stopResizing.bind(this));
+                    e.preventDefault();
+                });
+
+                this.aceEditor.session.on('change', () => {
+                    this.saveEditorContent();
+                    this.updateOutput();
+                });
+            },
+
+            saveEditorState(collapsed) {
+                const state = {
+                    collapsed: collapsed,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem('editorState', JSON.stringify(state));
+            },
+
+            loadEditorState() {
+                const state = JSON.parse(localStorage.getItem('editorState'));
+                if (state && Date.now() - state.timestamp < this.expirationDuration) {
+                    if (state.collapsed) {
+                        document.getElementById('container').classList.add('collapsed');
+                    }
+                } else {
+                    localStorage.removeItem('editorState');
                 }
-            } else {
-                localStorage.removeItem('editorState'); // Efface l'état expiré
+            },
+
+            toggleEditor() {
+                document.getElementById('container').classList.toggle('collapsed');
+                this.saveEditorState(document.getElementById('container').classList.contains('collapsed'));
+            },
+
+            loadEditorContent() {
+                const savedContent = localStorage.getItem('editorContent');
+                if (savedContent) {
+                    this.aceEditor.setValue(savedContent, -1);
+                }
+            },
+
+            saveEditorContent() {
+                const code = this.aceEditor.getValue();
+                localStorage.setItem('editorContent', code);
+            },
+
+            updateOutput() {
+                const code = this.aceEditor.getValue();
+
+                // Stop exécution si la signature est détectée
+                if (code.includes(this.uniqueSignature)) return;
+
+                const output = document.getElementById('output');
+                output.contentWindow.document.open();
+                output.contentWindow.document.write(code);
+                output.contentWindow.document.close();
+            },
+
+            resizeEditor(e) {
+                if (this.isResizing) {
+                    const newWidth = e.clientX;
+                    if (newWidth > 150 && newWidth < window.innerWidth * 0.8) {
+                        document.getElementById('editorContainer').style.flexBasis = `${newWidth}px`;
+                    }
+                }
+            },
+
+            stopResizing() {
+                this.isResizing = false;
+                document.removeEventListener('mousemove', this.resizeEditor.bind(this));
+                document.removeEventListener('mouseup', this.stopResizing.bind(this));
             }
-        }
-
-        // Fonction pour basculer l'affichage de l'éditeur
-        function toggleEditor() {
-            container.classList.toggle('collapsed');
-            saveEditorState(container.classList.contains('collapsed'));
-        }
-
-        // Sauvegarder et charger le contenu de l'éditeur
-        function loadEditorContent() {
-            const savedContent = localStorage.getItem('editorContent');
-            if (savedContent) {
-                aceEditor.setValue(savedContent, -1);
-            }
-        }
-
-        function saveEditorContent() {
-            const code = aceEditor.getValue();
-            localStorage.setItem('editorContent', code);
-        }
-
-        function updateOutput() {
-            const code = aceEditor.getValue();
-            output.contentWindow.document.open();
-            output.contentWindow.document.write(code);
-            output.contentWindow.document.close();
-        }
-
-        aceEditor.session.on('change', () => {
-            saveEditorContent();
-            updateOutput();
-        });
-
-        // Chargement initial
-        window.onload = () => {
-            loadEditorContent();
-            loadEditorState();
-            updateOutput();
         };
+
+        // Initialiser l'application
+        window.onload = () => MyEditorApp.init();
     </script>
 </body>
 </html>
