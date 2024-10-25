@@ -88,6 +88,38 @@
     </div>
 
     <script>
+        (function() {
+            const originalLog = console.log;
+            const originalWarn = console.warn;
+            const originalError = console.error;
+            const internalSignature = "[MyEditorApp]"; // Signature pour identifier les logs internes
+    
+            // Filtrer les logs internes
+            console.log = function(...args) {
+                if (!args.some(arg => typeof arg === "string" && arg.includes(internalSignature))) {
+                    originalLog.apply(console, args);
+                }
+            };
+    
+            console.warn = function(...args) {
+                if (!args.some(arg => typeof arg === "string" && arg.includes(internalSignature))) {
+                    originalWarn.apply(console, args);
+                }
+            };
+    
+            console.error = function(...args) {
+                if (!args.some(arg => typeof arg === "string" && arg.includes(internalSignature))) {
+                    originalError.apply(console, args);
+                }
+            };
+            
+            // Injecter des logs avec la signature interne (exemple)
+            console.log(internalSignature, "Application initialized.");
+            console.warn(internalSignature, "Internal warning example.");
+        })();
+    </script>
+
+    <script>
         const MyEditorApp = {
             aceEditor: null,
             expirationDuration: 3600000, // 1 heure
