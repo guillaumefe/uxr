@@ -88,6 +88,38 @@
     </div>
 
     <script>
+        (function() {
+            const originalLog = console.log;
+            const originalWarn = console.warn;
+            const originalError = console.error;
+            const internalSignature = "[MyEditorApp]"; // Signature pour identifier les logs internes
+    
+            // Filtrer les logs internes
+            console.log = function(...args) {
+                if (!args.some(arg => typeof arg === "string" && arg.includes(internalSignature))) {
+                    originalLog.apply(console, args);
+                }
+            };
+    
+            console.warn = function(...args) {
+                if (!args.some(arg => typeof arg === "string" && arg.includes(internalSignature))) {
+                    originalWarn.apply(console, args);
+                }
+            };
+    
+            console.error = function(...args) {
+                if (!args.some(arg => typeof arg === "string" && arg.includes(internalSignature))) {
+                    originalError.apply(console, args);
+                }
+            };
+            
+            // Injecter des logs avec la signature interne (exemple)
+            console.log(internalSignature, "Application initialized.");
+            console.warn(internalSignature, "Internal warning example.");
+        })();
+    </script>
+
+    <script>
         const MyEditorApp = {
             aceEditor: null,
             expirationDuration: 3600000, // 1 heure
@@ -176,12 +208,8 @@
             updateOutput() {
                 const code = this.aceEditor.getValue();
 
-                // Détecter la présence de la signature unique pour éviter une boucle infinie
-                if (code.includes(this.uniqueSignature)) {
-                    console.warn("Boucle potentielle détectée : Exécution interrompue.");
-                    alert("Le code contient une boucle potentielle et a été interrompu pour éviter des problèmes.");
-                    return;
-                }
+                // Stop exécution si la signature est détectée
+                if (code.includes(this.uniqueSignature)) return;
 
                 const output = document.getElementById('output');
                 output.contentWindow.document.open();
